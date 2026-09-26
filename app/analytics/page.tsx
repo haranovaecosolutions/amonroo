@@ -1,0 +1,15 @@
+"use client";
+
+import { BarChart3, Clock3, PackageCheck, TrendingUp } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from 'recharts';
+
+const data = [{ day: 'Mon', stock: 80, sent: 30, received: 15 }, { day: 'Tue', stock: 105, sent: 45, received: 35 }, { day: 'Wed', stock: 94, sent: 25, received: 40 }, { day: 'Thu', stock: 122, sent: 55, received: 48 }, { day: 'Fri', stock: 128, sent: 35, received: 50 }, { day: 'Sat', stock: 116, sent: 20, received: 25 }, { day: 'Sun', stock: 138, sent: 40, received: 62 }];
+
+export default function Analytics() {
+  return <>
+    <header className="top"><div><div className="eyebrow">Performance centre</div><h1>Analytics</h1><div className="muted">A weekly snapshot of movement through your operation.</div></div><span className="badge blue"><BarChart3 size={13} /> Last 7 days</span></header>
+    <div className="grid"><div className="card stat-card"><div className="label"><Clock3 size={14} /> Average turnaround</div><div className="metric">6.4d</div><div className="metric-note">Down 0.8d from last period</div></div><div className="card stat-card"><div className="label"><TrendingUp size={14} /> On-time completion</div><div className="metric">86%</div><div className="metric-note">Healthy delivery cadence</div></div><div className="card stat-card"><div className="label"><PackageCheck size={14} /> Units received</div><div className="metric">275</div><div className="metric-note">Across active jobs</div></div><div className="card stat-card warning"><div className="label"><BarChart3 size={14} /> Trend</div><div className="metric">+12%</div><div className="metric-note">Inventory movement week on week</div></div></div>
+    <section className="section card"><div className="section-heading"><div><div className="eyebrow">Inventory health</div><h2>Stock trend</h2></div><span className="muted">Units on hand</span></div><div className="chart"><ResponsiveContainer width="100%" height="100%"><LineChart data={data}><CartesianGrid stroke="#e6eeea" strokeDasharray="4 4" /><XAxis dataKey="day" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} /><Tooltip /><Line dataKey="stock" stroke="#087f78" strokeWidth={3} dot={{ fill: '#087f78', r: 3 }} /></LineChart></ResponsiveContainer></div></section>
+    <section className="section card"><div className="section-heading"><div><div className="eyebrow">Throughput</div><h2>Sent versus received</h2></div><span className="muted">Units moved</span></div><div className="chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={data} barGap={8}><CartesianGrid stroke="#e6eeea" strokeDasharray="4 4" /><XAxis dataKey="day" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} /><Tooltip /><Bar dataKey="sent" fill="#d9684e" radius={[4, 4, 0, 0]} /><Bar dataKey="received" fill="#087f78" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div></section>
+  </>;
+}

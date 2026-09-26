@@ -1,0 +1,5 @@
+import { NextResponse } from 'next/server';
+import { serverDb } from '@/lib/server-db';
+const demo = [{sku:'AM-001',name:'Demo Product A',stock:128,reorder:50},{sku:'AM-002',name:'Demo Product B',stock:24,reorder:40},{sku:'AM-003',name:'Demo Product C',stock:76,reorder:25}];
+export async function GET(){const db=serverDb();if(!db)return NextResponse.json(demo);const {data,error}=await db.from('inventory_stock_summary').select('*').order('sku');if(error)return NextResponse.json({error:error.message},{status:500});return NextResponse.json(data);}
+export async function POST(req:Request){const body=await req.json();const db=serverDb();if(!db)return NextResponse.json({...body,id:crypto.randomUUID(),stock:0});const {data,error}=await db.from('inventory_products').insert({sku:body.sku,name:body.name,reorder_level:Number(body.reorder_level||0),target_stock:Number(body.target_stock||0)}).select().single();if(error)return NextResponse.json({error:error.message},{status:400});return NextResponse.json(data);}
