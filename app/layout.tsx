@@ -3,15 +3,15 @@
 import './globals.css';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, Boxes, ClipboardList, LayoutDashboard, PackageSearch, Settings, ChevronRight } from 'lucide-react';
+import { Ban, BarChart3, Boxes, ClipboardList, LayoutDashboard, PackageSearch, ChevronRight } from 'lucide-react';
 
 const navigation = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/products', label: 'Stock & products', icon: Boxes },
-  { href: '/jobs', label: 'Manufacturer jobs', icon: ClipboardList },
+  { href: '/products', label: 'Designs', icon: Boxes },
+  { href: '/jobs', label: 'Manufacturing', icon: ClipboardList },
   { href: '/orders', label: 'Orders', icon: PackageSearch },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
-  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/dead-designs', label: 'Dead designs', icon: Ban },
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

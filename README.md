@@ -5,7 +5,7 @@ Amonroo is a small inventory command centre for products, customer orders, manuf
 ## What is implemented
 
 - Customer order creation with an automatic `AM-xxxxxx` order ID.
-- Product catalogue with reorder and target-stock levels.
+- Design catalogue with unique design numbers, allocation/delivery/payment tracking, and reorder levels.
 - Manufacturer jobs with expected return dates and urgency colours.
 - Automatic stock ledger entries when goods are sent to or received from a manufacturer.
 - Partial receipts and remaining-quantity tracking.
