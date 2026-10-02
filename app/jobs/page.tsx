@@ -94,7 +94,7 @@ export default function Jobs() {
       <div className="field"><label htmlFor="job-total-payment">Total payment</label><input id="job-total-payment" required min="0" step="0.01" type="number" value={form.total_payment} onChange={(event) => setForm({ ...form, total_payment: event.target.value })} /></div>
       <div className="field"><label htmlFor="job-amount-paid">Amount paid</label><input id="job-amount-paid" required min="0" step="0.01" type="number" value={form.amount_paid} onChange={(event) => setForm({ ...form, amount_paid: event.target.value })} /></div>
       <div className="field"><label htmlFor="reorder-number">Reorder number</label><input id="reorder-number" required min="0" step="1" type="number" value={form.reorder_number} onChange={(event) => setForm({ ...form, reorder_number: event.target.value })} /></div>
-      <div className="field wide-field"><label htmlFor="job-remarks">Remarks</label><textarea id="job-remarks" required value={form.remarks} onChange={(event) => setForm({ ...form, remarks: event.target.value })} /></div>
+      <div className="field wide-field"><label className="optional-field-label" htmlFor="job-remarks">Remarks</label><textarea id="job-remarks" value={form.remarks} onChange={(event) => setForm({ ...form, remarks: event.target.value })} /></div>
       {error && <div className="form-error"><CircleAlert size={15} /> {error}</div>}
       <button className="button"><Plus size={15} /> Save manufacturing record</button>
     </form></section>

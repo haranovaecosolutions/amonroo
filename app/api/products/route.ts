@@ -29,27 +29,23 @@ export async function GET() {
 export async function POST(request: Request) {
 	const body = await request.json();
 	const designNumber = typeof body.design_number === 'string' ? body.design_number.trim() : '';
+	const designerName = typeof body.designer_name === 'string' ? body.designer_name.trim() : '';
 	const remarks = typeof body.remarks === 'string' ? body.remarks.trim() : '';
-	if (!designNumber || !validDate(body.allocation_date) || !['pending', 'partial', 'paid'].includes(body.payment_status) || !remarks || ![body.total_payment, body.payment_amount, body.reorder_level, body.target_stock].every(hasNumber)) {
-		return NextResponse.json({ error: 'Complete all required design fields, including both payment values and remarks.' }, { status: 400 });
+	if (!designNumber || !designerName || !validDate(body.allocation_date) || !['pending', 'partial', 'paid'].includes(body.payment_status) || ![body.total_payment, body.payment_amount].every(hasNumber)) {
+		return NextResponse.json({ error: 'Complete all required design fields, including Designer Name and both payment values.' }, { status: 400 });
 	}
 
-	const reorderLevel = Number(body.reorder_level);
-	const targetStock = Number(body.target_stock);
 	const totalPayment = Number(body.total_payment);
 	const paymentAmount = Number(body.payment_amount);
-	if (!Number.isInteger(reorderLevel) || reorderLevel < 0 || !Number.isInteger(targetStock) || targetStock < 0) {
-		return NextResponse.json({ error: 'Reorder level and target stock must be non-negative whole numbers.' }, { status: 400 });
-	}
 	if (!Number.isFinite(totalPayment) || totalPayment < 0 || !Number.isFinite(paymentAmount) || paymentAmount < 0) {
 		return NextResponse.json({ error: 'Total payment and amount paid must be non-negative numbers.' }, { status: 400 });
 	}
 
-	const values = { sku: designNumber, name: designNumber, allocation_date: body.allocation_date, payment_status: body.payment_status, total_payment: totalPayment, payment_amount: paymentAmount, reorder_level: reorderLevel, target_stock: targetStock, remarks };
+	const values = { sku: designNumber, name: designerName, allocation_date: body.allocation_date, payment_status: body.payment_status, total_payment: totalPayment, payment_amount: paymentAmount, remarks };
 	const db = serverDb();
 	if (!db) {
 		if (demo.some((design) => design.sku === designNumber)) return NextResponse.json({ error: `Design ID "${designNumber}" already exists. Enter a different ID.` }, { status: 409 });
-		const created = { ...values, id: crypto.randomUUID(), stock: 0, reorder: reorderLevel };
+		const created = { ...values, id: crypto.randomUUID(), stock: 0, reorder_level: 0, target_stock: 0, reorder: 0 };
 		demo = [...demo, created];
 		return NextResponse.json(created, { status: 201 });
 	}

@@ -44,7 +44,7 @@ export async function POST(request: Request) {
 	const remarks = typeof body.remarks === 'string' ? body.remarks.trim() : '';
 	const quantity = Number(body.quantity_sent);
 	const reorderNumber = Number(body.reorder_number);
-	if (!jobNumber || !productSku || !manufacturerName || !remarks || !Number.isInteger(quantity) || quantity < 1 ||
+	if (!jobNumber || !productSku || !manufacturerName || !Number.isInteger(quantity) || quantity < 1 ||
 		!validDate(body.allocation_date) || !validDate(body.expected_return_date) ||
 		!['pending', 'partial', 'paid'].includes(body.payment_status) || !validAmount(body.total_payment) ||
 		!validAmount(body.amount_paid) || !Number.isInteger(reorderNumber) || reorderNumber < 0) {
