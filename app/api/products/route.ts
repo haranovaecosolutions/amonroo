@@ -1,14 +1,6 @@
 import { NextResponse } from 'next/server';
 import { serverDb } from '@/lib/server-db';
-
-let demo = [
-	{ sku: 'AM-001', name: 'AM-001', allocation_date: '2026-09-20', payment_status: 'pending', total_payment: 0, payment_amount: 0, stock: 128, reorder: 50 },
-	{ sku: 'AM-002', name: 'AM-002', allocation_date: '2026-09-22', payment_status: 'partial', total_payment: 0, payment_amount: 0, stock: 24, reorder: 40 },
-	{ sku: 'AM-003', name: 'AM-003', allocation_date: '2026-09-25', payment_status: 'paid', total_payment: 0, payment_amount: 0, stock: 76, reorder: 25 },
-	{ sku: 'AM-004', name: 'Velvet lapel flower', allocation_date: '2026-09-26', payment_status: 'partial', total_payment: 1350, payment_amount: 450, remarks: 'Velvet sample, awaiting final trim', stock: 16, reorder: 10 },
-	{ sku: 'AM-005', name: 'Silk pocket square', allocation_date: '2026-09-17', delivery_date: '2026-09-29', payment_date: '2026-09-29', payment_status: 'paid', total_payment: 2800, payment_amount: 2800, remarks: 'Delivered in full', stock: 8, reorder: 12 },
-	{ sku: 'AM-006', name: 'Ceremony sash', allocation_date: '2026-09-30', payment_status: 'pending', total_payment: 900, payment_amount: 0, remarks: 'Awaiting production slot', stock: 3, reorder: 8 },
-];
+import { getBaseLinkerProducts } from '@/lib/baselinker';
 
 function validDate(value: unknown) {
 	return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -19,14 +11,31 @@ function hasNumber(value: unknown) {
 }
 
 export async function GET() {
+	if (process.env.BASELINKER_API_TOKEN) {
+		try {
+			const products = await getBaseLinkerProducts();
+			return NextResponse.json(products, {
+				headers: {
+					'Cache-Control': 'no-store',
+					'X-Data-Source': 'BaseLinker',
+				},
+			});
+		} catch (error) {
+			const message = error instanceof Error ? error.message : 'Could not retrieve BaseLinker inventory.';
+			return NextResponse.json({ error: message }, { status: 502 });
+		}
+	}
 	const db = serverDb();
-	if (!db) return NextResponse.json(demo);
+	if (!db) return NextResponse.json({ error: 'Set BASELINKER_API_TOKEN or configure Supabase to load inventory.' }, { status: 503 });
 	const { data, error } = await db.from('inventory_stock_summary').select('*').order('sku');
 	if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 	return NextResponse.json(data);
 }
 
 export async function POST(request: Request) {
+	if (process.env.BASELINKER_API_TOKEN) {
+		return NextResponse.json({ error: 'The BaseLinker inventory is read-only.' }, { status: 405, headers: { Allow: 'GET' } });
+	}
 	const body = await request.json();
 	const designNumber = typeof body.design_number === 'string' ? body.design_number.trim() : '';
 	const designerName = typeof body.designer_name === 'string' ? body.designer_name.trim() : '';
@@ -43,12 +52,7 @@ export async function POST(request: Request) {
 
 	const values = { sku: designNumber, name: designerName, allocation_date: body.allocation_date, payment_status: body.payment_status, total_payment: totalPayment, payment_amount: paymentAmount, remarks };
 	const db = serverDb();
-	if (!db) {
-		if (demo.some((design) => design.sku === designNumber)) return NextResponse.json({ error: `Design ID "${designNumber}" already exists. Enter a different ID.` }, { status: 409 });
-		const created = { ...values, id: crypto.randomUUID(), stock: 0, reorder_level: 0, target_stock: 0, reorder: 0 };
-		demo = [...demo, created];
-		return NextResponse.json(created, { status: 201 });
-	}
+	if (!db) return NextResponse.json({ error: 'Configure Supabase before creating designs.' }, { status: 503 });
 	const { data, error } = await db.from('inventory_products').insert(values).select().single();
 	if (error?.code === '23505') return NextResponse.json({ error: `Design ID "${designNumber}" already exists. Enter a different ID.` }, { status: 409 });
 	if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -56,6 +60,9 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+	if (process.env.BASELINKER_API_TOKEN) {
+		return NextResponse.json({ error: 'The BaseLinker inventory is read-only.' }, { status: 405, headers: { Allow: 'GET' } });
+	}
 	const body = await request.json();
 	const designNumber = typeof body.design_number === 'string' ? body.design_number.trim() : '';
 	const deliveryDate = body.delivery_date || null;
@@ -72,12 +79,7 @@ export async function PATCH(request: Request) {
 
 	const values = { delivery_date: deliveryDate, payment_date: paymentDate, payment_status: paymentStatus, total_payment: totalPayment, payment_amount: paymentAmount };
 	const db = serverDb();
-	if (!db) {
-		const index = demo.findIndex((design) => design.sku === designNumber);
-		if (index < 0) return NextResponse.json({ error: 'Design not found.' }, { status: 404 });
-		demo = demo.map((design) => design.sku === designNumber ? { ...design, ...values } : design);
-		return NextResponse.json({ sku: designNumber, ...values });
-	}
+	if (!db) return NextResponse.json({ error: 'Configure Supabase before editing designs.' }, { status: 503 });
 	const { data, error } = await db.from('inventory_products').update(values).eq('sku', designNumber).select('sku,delivery_date,payment_date,payment_status,total_payment,payment_amount').single();
 	if (error) return NextResponse.json({ error: error.message }, { status: error.code === 'PGRST116' ? 404 : 400 });
 	return NextResponse.json(data);

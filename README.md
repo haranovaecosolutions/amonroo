@@ -1,6 +1,6 @@
 # Amonroo Inventory
 
-Amonroo is a small inventory command centre for products, customer orders, manufacturer jobs, stock movements, deadlines, Base.com imports, and operational alerts.
+Amonroo is a small inventory command centre for products, customer orders, manufacturer jobs, stock movements, deadlines, BaseLinker data, and operational alerts.
 
 ## What is implemented
 
@@ -11,7 +11,7 @@ Amonroo is a small inventory command centre for products, customer orders, manuf
 - Partial receipts and remaining-quantity tracking.
 - Dashboard metrics, stock health, manufacturer pipeline, and analytics charts.
 - JSON export at `/api/export` for local archiving.
-- Base.com order import at `/api/base/sync`.
+- Read-only BaseLinker orders and inventory with automatic refresh.
 - Low-stock and deadline email alerts at `/api/alerts`.
 
 ## Local setup
@@ -23,17 +23,27 @@ Amonroo is a small inventory command centre for products, customer orders, manuf
 
 ## Required credentials
 
+### Site password
+
+- `INVENTORY_AUTH_ENABLED`: set to `true` to require the password page; defaults to disabled.
+- `INVENTORY_PASSWORD`: the password required to open the website.
+- `INVENTORY_SESSION_SECRET`: a long, random server-only secret used to sign 14-day login sessions. Generate a unique value for each environment.
+
+To turn the password gate back on, set `INVENTORY_AUTH_ENABLED=true` and configure both password settings in the server environment. Do not use `NEXT_PUBLIC_` variables or commit these secrets.
+
 ### Supabase
 
 - `NEXT_PUBLIC_SUPABASE_URL`: the project URL.
 - `SUPABASE_SERVICE_ROLE_KEY`: the server-only service-role key. Never expose this in browser code or commit it to GitHub.
 
-### Base.com
+### BaseLinker
 
-- `BASE_API_ORDERS_URL`: the exact Base.com orders endpoint for your account.
-- `BASE_API_TOKEN`: the Base.com API token.
+- `BASELINKER_API_TOKEN`: server-only API token with read access. The app only calls `getOrders`, `getOrderStatusList`, `getInventories`, `getInventoryProductsList`, and `getInventoryProductsData`.
+- `BASELINKER_INVENTORY_ID`: optional inventory ID. If omitted, the account's default inventory is used (or its only inventory).
+- `BASELINKER_WAREHOUSE_ID`: optional warehouse ID. If omitted, the selected inventory's default warehouse is used.
+- `BASELINKER_LOW_STOCK_FALLBACK`: defaults to `5` units for products without a BaseLinker stock threshold.
 
-Base.com APIs can return different field names depending on the account and API version. The sync endpoint imports order IDs and customer information first. To map product lines automatically, provide one sample Base.com order response so the field mapping can be matched precisely.
+Orders from the last 90 days and inventory stock are fetched directly from BaseLinker and refreshed in the app every minute. The orders page and BaseLinker-backed inventory are read-only; create and edit orders or products in BaseLinker. Keep the API token out of `NEXT_PUBLIC_` variables and source control.
 
 ### Email alerts
 

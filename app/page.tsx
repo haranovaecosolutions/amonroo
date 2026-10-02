@@ -6,7 +6,7 @@ import { AlertTriangle, ArrowRight, Boxes, ClipboardCheck, Download, PackageX, R
 
 type Product = { id?: string; sku: string; name: string; current_stock?: number; stock?: number; reorder_level?: number; reorder?: number; shortage?: number };
 type Job = { id?: string; job?: string; job_number?: string; product?: string; product_sku?: string; manufacturer: string; qty?: number; quantity_sent?: number; quantity_received?: number; quantity_outstanding?: number; days?: number; days_remaining?: number; expected_return_date?: string; status?: string };
-type Order = { id: string; order_number: string; customer_name?: string; ordered_at: string; deadline?: string | null; status: string; product_sku?: string; product_name?: string; quantity_ordered: number; total_quantity?: number; outstanding_quantity?: number; line_count?: number };
+type Order = { id: string; order_number: string; customer_name?: string; ordered_at: string; deadline?: string | null; status: string; is_open?: boolean; product_sku?: string; product_name?: string; quantity_ordered: number; total_quantity?: number; outstanding_quantity?: number; line_count?: number };
 type DashboardData = { products: Product[]; jobs: Job[]; orders: Order[] };
 
 async function loadDashboard(): Promise<DashboardData> {
@@ -50,16 +50,20 @@ export default function Dashboard() {
 
   useEffect(() => {
     let active = true;
-    loadDashboard()
-      .then((snapshot) => {
+    async function update() {
+      try {
+        const snapshot = await loadDashboard();
         if (!active) return;
         setData(snapshot);
         setLastUpdated(new Date());
-      })
-      .catch((loadError: unknown) => {
+        setError('');
+      } catch (loadError) {
         if (active) setError(loadError instanceof Error ? loadError.message : 'Could not load operations data.');
-      });
-    return () => { active = false; };
+      }
+    }
+    void update();
+    const interval = window.setInterval(() => void update(), 60_000);
+    return () => { active = false; window.clearInterval(interval); };
   }, []);
 
   async function refresh() {
@@ -78,7 +82,7 @@ export default function Dashboard() {
   const outOfStock = data.products.filter((product) => stockOnHand(product) <= 0);
   const lowStock = data.products.filter((product) => stockOnHand(product) > 0 && stockOnHand(product) <= reorderLevel(product));
   const stockAtRisk = data.products.filter((product) => stockOnHand(product) <= reorderLevel(product)).sort((left, right) => stockOnHand(left) - stockOnHand(right));
-  const openOrders = data.orders.filter((order) => !['fulfilled', 'cancelled'].includes(order.status));
+  const openOrders = data.orders.filter((order) => order.is_open ?? !['fulfilled', 'cancelled'].includes(order.status));
   const demandUnits = openOrders.reduce((total, order) => total + (order.outstanding_quantity ?? order.quantity_ordered ?? 0), 0);
   const attentionJobs = data.jobs.filter((job) => !['received', 'cancelled'].includes(job.status ?? '') && jobDays(job) <= 3);
   const watchJobs = data.jobs.filter((job) => !['received', 'cancelled'].includes(job.status ?? '')).sort((left, right) => jobDays(left) - jobDays(right)).slice(0, 5);
@@ -93,7 +97,7 @@ export default function Dashboard() {
       <Link className="card stat-card dashboard-stat" href="/products"><div className="label"><Boxes size={14} /> Designs</div><div className="metric">{data.products.length}</div><div className="metric-note">In the catalogue</div></Link>
       <Link className="card stat-card alert dashboard-stat" href="/attention"><div className="label"><PackageX size={14} /> Out of stock</div><div className="metric">{outOfStock.length}</div><div className="metric-note">Designs with no units available</div></Link>
       <Link className="card stat-card warning dashboard-stat" href="/attention"><div className="label"><AlertTriangle size={14} /> Low stock</div><div className="metric">{lowStock.length}</div><div className="metric-note">At or below reorder level</div></Link>
-      <Link className="card stat-card dashboard-stat" href="/orders"><div className="label"><ShoppingBag size={14} /> Open orders</div><div className="metric">{openOrders.length}</div><div className="metric-note">Awaiting fulfillment</div></Link>
+      <Link className="card stat-card dashboard-stat" href="/orders"><div className="label"><ShoppingBag size={14} /> Current orders</div><div className="metric">{openOrders.length}</div><div className="metric-note">Active in the last 90 days</div></Link>
       <Link className="card stat-card dashboard-stat" href="/orders"><div className="label"><ClipboardCheck size={14} /> Demand</div><div className="metric">{demandUnits.toLocaleString()}</div><div className="metric-note">Units still unallocated</div></Link>
       <Link className="card stat-card alert dashboard-stat" href="/attention"><div className="label"><Truck size={14} /> Jobs needing attention</div><div className="metric">{attentionJobs.length}</div><div className="metric-note">Open combined attention queue <ArrowRight size={12} /></div></Link>
     </div>

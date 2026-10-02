@@ -28,12 +28,12 @@ function validAmount(value: unknown) {
 
 export async function GET() {
 	const db = serverDb();
-	if (!db) return NextResponse.json(demo);
+	if (!db) return NextResponse.json(demo, { headers: { 'X-Data-Source': 'sample' } });
 	const { data, error } = await db.from('manufacturer_job_summary').select('*').order('expected_return_date');
 	if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 	const { data: receivedSkus, error: skuError } = await db.from('manufacturer_unit_skus').select('job_id,sku_id').order('sku_id');
 	if (skuError) return NextResponse.json({ error: skuError.message }, { status: 500 });
-	return NextResponse.json(data.map((job) => ({ ...job, sku_ids: receivedSkus.filter((sku) => sku.job_id === job.id).map((sku) => sku.sku_id) })));
+	return NextResponse.json(data.map((job) => ({ ...job, sku_ids: receivedSkus.filter((sku) => sku.job_id === job.id).map((sku) => sku.sku_id) })), { headers: { 'X-Data-Source': 'supabase' } });
 }
 
 export async function POST(request: Request) {
