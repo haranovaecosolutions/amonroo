@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Boxes, ClipboardList, PackageX, RefreshCw, ShoppingBag, TrendingDown, Truck } from 'lucide-react';
 import { Area, AreaChart, Bar, BarChart, Brush, CartesianGrid, Cell, Legend, Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import TableScroll from '../components/table-scroll';
 
 type Product = {
   id?: string;
@@ -391,9 +392,9 @@ export default function Analytics() {
 
     <section className="section card analytics-detail-card">
       <div className="section-heading"><div><div className="eyebrow">Live operations</div><h2>Order details · {period} days</h2></div><span className="muted">Showing {visibleOrders.length} of {filteredOrders.length} matching orders</span></div>
-      <div className="tablebox"><table className="table analytics-table"><thead><tr><th>Order</th><th>Placed</th><th>Customer</th><th>Items</th><th>Units</th><th>Value</th><th>Paid</th><th>Status</th></tr></thead>
+      <TableScroll><table className="table analytics-table"><thead><tr><th>Order</th><th>Placed</th><th>Customer</th><th>Items</th><th>Units</th><th>Value</th><th>Paid</th><th>Status</th></tr></thead>
         <tbody>{visibleOrders.map((order) => <tr key={order.id}><td><strong>#{order.order_number}</strong><small className="order-subline">BL ID {order.id}</small></td><td>{shortDate(order.ordered_at)}</td><td>{order.customer_name || '—'}</td><td>{order.line_count ?? order.products?.length ?? 0}</td><td>{number(order.quantity_ordered || 0)}</td><td>{currencyAmount(order.total_price || 0, order.currency)}</td><td>{currencyAmount(order.payment_done || 0, order.currency)}</td><td><span className={`badge ${orderIsOpen(order) ? 'amber' : 'green'}`}>{order.status}</span></td></tr>)}</tbody>
-      </table>{!loading && filteredOrders.length === 0 && <div className="empty-state">No orders found for this period or search.</div>}</div>
+      </table>{!loading && filteredOrders.length === 0 && <div className="empty-state">No orders found for this period or search.</div>}</TableScroll>
     </section>
 
     <section className="analytics-order-insights" aria-label="Order customer and fulfillment insights">
@@ -433,20 +434,20 @@ export default function Analytics() {
     <section className="analytics-detail-grid">
       <article className="section card analytics-detail-card">
         <div className="section-heading"><div><div className="eyebrow">Design availability</div><h2>Inventory at risk</h2></div><span className="badge amber">{lowStock.length + outOfStock.length} at risk</span></div>
-        <div className="tablebox"><table className="table analytics-table"><thead><tr><th>Design / product</th><th>Available</th><th>Threshold</th><th>Shortage</th><th>State</th></tr></thead>
+        <TableScroll><table className="table analytics-table"><thead><tr><th>Design / product</th><th>Available</th><th>Threshold</th><th>Shortage</th><th>State</th></tr></thead>
           <tbody>{visibleInventory.map((product) => {
             const stock = stockOnHand(product);
             const threshold = reorderLevel(product);
             const shortage = product.shortage ?? Math.max(threshold - stock, 0);
             return <tr key={product.id ?? product.sku}><td><strong>{product.sku}</strong><small className="order-subline">{product.name}</small></td><td>{number(stock)}</td><td>{number(threshold)}</td><td>{number(shortage)}</td><td><span className={`badge ${stock <= 0 ? 'red' : stock <= threshold ? 'amber' : 'green'}`}>{stock <= 0 ? 'Out of stock' : stock <= threshold ? 'Low stock' : 'Available'}</span></td></tr>;
           })}</tbody>
-        </table>{!loading && filteredInventory.length === 0 && <div className="empty-state">No designs match the current filter.</div>}</div>
+        </table>{!loading && filteredInventory.length === 0 && <div className="empty-state">No designs match the current filter.</div>}</TableScroll>
       </article>
 
       <article className="section card analytics-detail-card">
         <div className="section-heading"><div><div className="eyebrow">Manufacturing operations</div><h2>Active jobs</h2></div><span className="badge blue"><ClipboardList size={13} /> {visibleJobs.length} of {currentJobs.length} jobs · {number(outstandingManufacturingUnits)} units due</span></div>
         <div className="analytics-table-meta">{data.jobsSource === 'sample' ? 'Sample records · configure Supabase for saved manufacturing data' : 'Saved manufacturing records'}{jobStatusFilter && <button className="text-button" onClick={() => setJobStatusFilter('')}>Clear status: {jobStatusFilter}</button>}</div>
-        <div className="tablebox"><table className="table analytics-table"><thead><tr><th>Job</th><th>Design</th><th>Manufacturer</th><th>Sent</th><th>Received</th><th>Outstanding</th><th>Expected delivery</th><th>Total payment</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead>
+        <TableScroll><table className="table analytics-table"><thead><tr><th>Job</th><th>Design</th><th>Manufacturer</th><th>Sent</th><th>Received</th><th>Outstanding</th><th>Expected delivery</th><th>Total payment</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead>
           <tbody>{visibleJobs.map((job) => {
             const sent = job.quantity_sent ?? 0;
             const received = job.quantity_received ?? 0;
@@ -455,7 +456,7 @@ export default function Analytics() {
             const amountPaid = job.amount_paid ?? 0;
             return <tr key={job.id ?? job.job_number ?? job.job}><td><strong>{job.job_number ?? job.job ?? '—'}</strong></td><td>{job.product_sku ?? job.product ?? '—'}</td><td>{job.manufacturer}</td><td>{number(sent)}</td><td>{number(received)}</td><td>{number(outstanding)}</td><td>{shortDate(job.expected_return_date)}</td><td>{number(totalPayment)}</td><td>{number(amountPaid)}</td><td>{number(Math.max(totalPayment - amountPaid, 0))}</td><td><span className={`badge ${dueTone(job.expected_return_date)}`}>{(job.status || 'In progress').replaceAll('_', ' ')}</span></td></tr>;
           })}</tbody>
-        </table>{!loading && filteredJobs.length === 0 && <div className="empty-state">No active manufacturing jobs match the selected filters.</div>}</div>
+        </table>{!loading && filteredJobs.length === 0 && <div className="empty-state">No active manufacturing jobs match the selected filters.</div>}</TableScroll>
       </article>
     </section>
   </>;

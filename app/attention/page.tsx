@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, ArrowLeft, ArrowRight, Boxes, Truck } from 'lucide-react';
+import TableScroll from '../components/table-scroll';
 
 type Product = { id?: string; sku: string; name: string; current_stock?: number; stock?: number; reorder_level?: number; reorder?: number; shortage?: number };
 type Job = { id?: string; job?: string; job_number?: string; product?: string; product_sku?: string; manufacturer: string; qty?: number; quantity_sent?: number; quantity_received?: number; quantity_outstanding?: number; days?: number; days_remaining?: number; expected_return_date?: string; status?: string };
@@ -50,15 +51,15 @@ export default function Attention() {
     <div className="attention-summary"><span><Boxes size={16} /> {designRisks.length} designs at or below reorder level</span><span><Truck size={16} /> {manufacturingRisks.length} urgent manufacturing jobs</span></div>
 
     <section className="section dashboard-section"><div className="section-heading"><div><div className="eyebrow">Inventory action</div><h2>Designs to replenish</h2></div><Link className="text-link" href="/products">Open designs <ArrowRight size={14} /></Link></div>
-      <div className="tablebox"><table className="table"><thead><tr><th>Design ID</th><th>Design</th><th>Available</th><th>Reorder level</th><th>Shortage</th><th>Priority</th><th>Action</th></tr></thead>
+      <TableScroll><table className="table"><thead><tr><th>Design ID</th><th>Design</th><th>Available</th><th>Reorder level</th><th>Shortage</th><th>Priority</th><th>Action</th></tr></thead>
         <tbody>{designRisks.map((product) => { const stock = stockOnHand(product); const reorder = reorderLevel(product); const shortage = product.shortage ?? Math.max(reorder - stock, 0); return <tr key={product.id ?? product.sku}><td><strong>{product.sku}</strong></td><td>{product.name}</td><td>{stock}</td><td>{reorder}</td><td>{shortage}</td><td><span className={`badge ${stock <= 0 ? 'red' : 'amber'}`}>{stock <= 0 ? 'Out of stock' : 'Low stock'}</span></td><td><Link className="text-link" href="/products">Review <ArrowRight size={13} /></Link></td></tr>; })}</tbody>
-      </table>{designRisks.length === 0 && <div className="empty-state">No designs need replenishment.</div>}</div>
+      </table>{designRisks.length === 0 && <div className="empty-state">No designs need replenishment.</div>}</TableScroll>
     </section>
 
     <section className="section dashboard-section"><div className="section-heading"><div><div className="eyebrow">Delivery action</div><h2>Manufacturing follow-up</h2></div><Link className="text-link" href="/jobs">Open manufacturing <ArrowRight size={14} /></Link></div>
-      <div className="tablebox"><table className="table"><thead><tr><th>Job</th><th>Design ID</th><th>Manufacturer</th><th>Outstanding</th><th>Expected delivery</th><th>Priority</th><th>Action</th></tr></thead>
+      <TableScroll><table className="table"><thead><tr><th>Job</th><th>Design ID</th><th>Manufacturer</th><th>Outstanding</th><th>Expected delivery</th><th>Priority</th><th>Action</th></tr></thead>
         <tbody>{manufacturingRisks.map((job) => { const days = jobDays(job); const outstanding = job.quantity_outstanding ?? Math.max((job.quantity_sent ?? job.qty ?? 0) - (job.quantity_received ?? 0), 0); return <tr key={job.id ?? job.job}><td><strong>{job.job_number ?? job.job}</strong></td><td>{job.product_sku ?? job.product}</td><td>{job.manufacturer}</td><td>{outstanding}</td><td>{shortDate(job.expected_return_date)}</td><td><span className={`badge ${days < 0 ? 'red' : 'amber'}`}>{days < 0 ? 'Overdue' : 'Due soon'}</span></td><td><Link className="text-link" href="/jobs">Review <ArrowRight size={13} /></Link></td></tr>; })}</tbody>
-      </table>{manufacturingRisks.length === 0 && <div className="empty-state">No urgent manufacturing deliveries.</div>}</div>
+      </table>{manufacturingRisks.length === 0 && <div className="empty-state">No urgent manufacturing deliveries.</div>}</TableScroll>
     </section>
   </>;
 }

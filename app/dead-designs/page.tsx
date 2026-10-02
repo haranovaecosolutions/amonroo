@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { AlertTriangle, Ban, RotateCcw } from 'lucide-react';
+import TableScroll from '../components/table-scroll';
 
 type Design = { sku: string; name?: string };
 type DeadDesign = { design_id: string; created_at?: string };
@@ -49,8 +50,8 @@ export default function DeadDesigns() {
       {error && <div className="form-error"><AlertTriangle size={15} /> {error}</div>}
       <button className="button" disabled={availableDesigns.length === 0}><Ban size={15} /> Add to dead designs</button>
     </form></section>
-    <section className="section tablebox"><table className="table"><thead><tr><th>Design ID</th><th>Design</th><th>Blocked on</th><th>Action</th></tr></thead>
+    <section className="section"><TableScroll><table className="table"><thead><tr><th>Design ID</th><th>Design</th><th>Blocked on</th><th>Action</th></tr></thead>
       <tbody>{deadDesigns.map((deadDesign) => { const design = designs.find((item) => item.sku === deadDesign.design_id); return <tr key={deadDesign.design_id}><td><strong>{deadDesign.design_id}</strong></td><td>{design?.name || deadDesign.design_id}</td><td>{deadDesign.created_at ? new Date(deadDesign.created_at).toLocaleDateString() : '—'}</td><td><button className="button secondary compact" onClick={() => void restore(deadDesign)}><RotateCcw size={13} /> Restore</button></td></tr>; })}</tbody>
-    </table>{deadDesigns.length === 0 && <div className="empty-state">No designs are blocked.</div>}</section>
+    </table>{deadDesigns.length === 0 && <div className="empty-state">No designs are blocked.</div>}</TableScroll></section>
   </>;
 }

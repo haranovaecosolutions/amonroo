@@ -105,8 +105,16 @@ nav a.active { color: white; background: #2b4a50; border-color: rgba(255, 255, 2
 .search-count { font-size: 12px; white-space: nowrap; }
 h2 { margin: 0; color: var(--ink); font-size: 17px; letter-spacing: -0.3px; }
 .section-heading h2 { font-size: 18px; }
-.tablebox { overflow: hidden; padding: 0; }
-.table { width: 100%; border-collapse: collapse; }
+.table-scroll { width: 100%; min-width: 0; max-width: 100%; }
+.table-scroll-top { width: 100%; height: 15px; margin-bottom: 5px; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-color: #8aa39a #eaf0ed; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
+.table-scroll-top:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.table-scroll-top::-webkit-scrollbar { height: 12px; }
+.table-scroll-top::-webkit-scrollbar-track { border-radius: 99px; background: #eaf0ed; }
+.table-scroll-top::-webkit-scrollbar-thumb { border: 2px solid #eaf0ed; border-radius: 99px; background: #8aa39a; }
+.table-scroll-top::-webkit-scrollbar-thumb:hover { background: var(--teal); }
+.table-scroll-spacer { height: 1px; }
+.tablebox { width: 100%; min-width: 0; max-width: 100%; overflow-x: auto; overflow-y: hidden; padding: 0; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+.table { width: max-content; min-width: 100%; border-collapse: collapse; }
 .table th, .table td { padding: 15px 18px; border-bottom: 1px solid #edf1ee; text-align: left; white-space: nowrap; }
 .table th { color: #788985; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; background: #fbfcfa; }
 .table td { color: #33474a; font-size: 13px; }

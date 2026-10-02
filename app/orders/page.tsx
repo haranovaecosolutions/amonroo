@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Clock3, PackageSearch, RefreshCw, Search } from 'lucide-react';
+import TableScroll from '../components/table-scroll';
 
 type OrderLine = { sku?: string; name?: string; quantity: number; unit_price: number; currency: string };
 type Order = {
@@ -117,7 +118,7 @@ export default function Orders() {
         </select>
         <span className="muted search-count">{filteredOrders.length} of {orders.length} orders</span>
       </div>
-      <div className="tablebox">
+      <TableScroll>
         <table className="table orders-table">
           <thead><tr><th>Order</th><th>Placed</th><th>Customer</th><th>Channel</th><th>Items</th><th>Order total</th><th>Paid</th><th>Status</th><th>Details</th></tr></thead>
           <tbody>{filteredOrders.map((order) => <tr key={order.id}>
@@ -146,7 +147,7 @@ export default function Orders() {
         </table>
         {!loading && filteredOrders.length === 0 && <div className="empty-state">{error ? 'Order data is unavailable until the BaseLinker connection is restored.' : 'No orders match this search or status filter.'}</div>}
         {loading && <div className="empty-state">Loading live BaseLinker orders...</div>}
-      </div>
+      </TableScroll>
     </section>
   </>;
 }
