@@ -40,12 +40,24 @@ export default function Jobs() {
       window.alert(`Design ID ${form.product_sku} is marked as dead and cannot be used for manufacturing.`);
       return;
     }
-    const response = await fetch('/api/jobs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
-    const result = await response.json();
+    let response = await fetch('/api/jobs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+    let result = await response.json();
+    let duplicateConfirmed = false;
+    if (result.code === 'DEAD_DESIGN') { window.alert(result.error); return; }
+    if (result.code === 'ACTIVE_DESIGN_EXISTS') {
+      if (!window.confirm(`${result.error}\n\nDo you want to add this manufacturing record anyway?`)) {
+        window.alert('Data not added.');
+        return;
+      }
+      duplicateConfirmed = true;
+      response = await fetch('/api/jobs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, confirm_duplicate: true }) });
+      result = await response.json();
+    }
     if (result.code === 'DEAD_DESIGN') { window.alert(result.error); return; }
     if (!response.ok) { setError(result.error || 'Could not save manufacturing record.'); return; }
     setData([...data, result]);
     setForm(emptyJob());
+    if (duplicateConfirmed) window.alert('Data added.');
   }
 
   function openReceipt(job: Job) {

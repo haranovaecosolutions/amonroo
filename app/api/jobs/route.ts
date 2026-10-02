@@ -55,6 +55,10 @@ export async function POST(request: Request) {
 	const db = serverDb();
 	if (!db) {
 		if (demo.some((job) => job.job_number.toLowerCase() === jobNumber.toLowerCase())) return NextResponse.json({ error: `Job number "${jobNumber}" already exists.` }, { status: 409 });
+		const activeJobs = demo.filter((job) => job.product_sku.toLowerCase() === productSku.toLowerCase() && job.quantity_outstanding > 0);
+		if (activeJobs.length > 0 && body.confirm_duplicate !== true) {
+			return NextResponse.json({ code: 'ACTIVE_DESIGN_EXISTS', error: `Design ID ${productSku} is already in manufacturing with delivery incomplete for ${activeJobs.map((job) => job.job_number).join(', ')}.` }, { status: 409 });
+		}
 		const deadResponse = await fetch(new URL('/api/dead-designs', request.url), { cache: 'no-store' });
 		const deadDesigns = await deadResponse.json();
 		if (Array.isArray(deadDesigns) && deadDesigns.some((design: { design_id: string }) => design.design_id.toLowerCase() === productSku.toLowerCase())) {
@@ -71,6 +75,14 @@ export async function POST(request: Request) {
 	const { data: deadDesign, error: deadDesignError } = await db.from('dead_designs').select('design_id').eq('design_id', productSku).maybeSingle();
 	if (deadDesignError) return NextResponse.json({ error: deadDesignError.message }, { status: 500 });
 	if (deadDesign) return NextResponse.json({ code: 'DEAD_DESIGN', error: `Design ID ${productSku} is marked as dead and cannot be used for manufacturing.` }, { status: 409 });
+	const { data: activeJobs, error: activeJobsError } = await db.from('manufacturer_jobs')
+		.select('job_number,quantity_sent,quantity_received,quantity_rejected')
+		.eq('product_id', product.id);
+	if (activeJobsError) return NextResponse.json({ error: activeJobsError.message }, { status: 500 });
+	const incompleteJobs = activeJobs.filter((job) => job.quantity_sent > job.quantity_received + job.quantity_rejected);
+	if (incompleteJobs.length > 0 && body.confirm_duplicate !== true) {
+		return NextResponse.json({ code: 'ACTIVE_DESIGN_EXISTS', error: `Design ID ${productSku} is already in manufacturing with delivery incomplete for ${incompleteJobs.map((job) => job.job_number).join(', ')}.` }, { status: 409 });
+	}
 	let { data: manufacturer } = await db.from('manufacturers').select('id').eq('name', manufacturerName).maybeSingle();
 	if (!manufacturer) {
 		const result = await db.from('manufacturers').insert({ name: manufacturerName }).select('id').single();
