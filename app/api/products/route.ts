@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { serverDb } from '@/lib/server-db';
-import { getBaseLinkerProducts } from '@/lib/baselinker';
 
 function validDate(value: unknown) {
 	return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -11,31 +10,14 @@ function hasNumber(value: unknown) {
 }
 
 export async function GET() {
-	if (process.env.BASELINKER_API_TOKEN) {
-		try {
-			const products = await getBaseLinkerProducts();
-			return NextResponse.json(products, {
-				headers: {
-					'Cache-Control': 'no-store',
-					'X-Data-Source': 'BaseLinker',
-				},
-			});
-		} catch (error) {
-			const message = error instanceof Error ? error.message : 'Could not retrieve BaseLinker inventory.';
-			return NextResponse.json({ error: message }, { status: 502 });
-		}
-	}
 	const db = serverDb();
-	if (!db) return NextResponse.json({ error: 'Set BASELINKER_API_TOKEN or configure Supabase to load inventory.' }, { status: 503 });
+	if (!db) return NextResponse.json({ error: 'Configure Supabase to load designs.' }, { status: 503 });
 	const { data, error } = await db.from('inventory_stock_summary').select('*').order('sku');
 	if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 	return NextResponse.json(data);
 }
 
 export async function POST(request: Request) {
-	if (process.env.BASELINKER_API_TOKEN) {
-		return NextResponse.json({ error: 'The BaseLinker inventory is read-only.' }, { status: 405, headers: { Allow: 'GET' } });
-	}
 	const body = await request.json();
 	const designNumber = typeof body.design_number === 'string' ? body.design_number.trim() : '';
 	const designerName = typeof body.designer_name === 'string' ? body.designer_name.trim() : '';
@@ -60,9 +42,6 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-	if (process.env.BASELINKER_API_TOKEN) {
-		return NextResponse.json({ error: 'The BaseLinker inventory is read-only.' }, { status: 405, headers: { Allow: 'GET' } });
-	}
 	const body = await request.json();
 	const designNumber = typeof body.design_number === 'string' ? body.design_number.trim() : '';
 	const deliveryDate = body.delivery_date || null;
@@ -83,4 +62,16 @@ export async function PATCH(request: Request) {
 	const { data, error } = await db.from('inventory_products').update(values).eq('sku', designNumber).select('sku,delivery_date,payment_date,payment_status,total_payment,payment_amount').single();
 	if (error) return NextResponse.json({ error: error.message }, { status: error.code === 'PGRST116' ? 404 : 400 });
 	return NextResponse.json(data);
+}
+
+export async function DELETE(request: Request) {
+	const sku = new URL(request.url).searchParams.get('sku')?.trim();
+	if (!sku) return NextResponse.json({ error: 'A Design ID is required.' }, { status: 400 });
+	const db = serverDb();
+	if (!db) return NextResponse.json({ error: 'Configure Supabase before deleting designs.' }, { status: 503 });
+	const { data, error } = await db.rpc('delete_unused_inventory_product', { p_sku: sku });
+	if (error?.code === 'P0002') return NextResponse.json({ error: error.message }, { status: 404 });
+	if (error?.code === 'P0001') return NextResponse.json({ error: error.message }, { status: 409 });
+	if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+	return NextResponse.json({ sku: data });
 }

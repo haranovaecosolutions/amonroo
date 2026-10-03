@@ -4,6 +4,12 @@ import { SESSION_COOKIE, verifySiteSessionToken } from '@/lib/site-auth';
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (process.env.INVENTORY_AUTH_ENABLED !== 'true') {
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        { error: 'Site access is disabled until INVENTORY_AUTH_ENABLED=true is configured.' },
+        { status: 503 },
+      );
+    }
     if (pathname === '/login' || pathname.startsWith('/api/auth/')) {
       return NextResponse.redirect(new URL('/', request.url));
     }

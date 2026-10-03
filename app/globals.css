@@ -45,6 +45,7 @@ nav a.active { color: white; background: #2b4a50; border-color: rgba(255, 255, 2
 .eyebrow { margin-bottom: 9px; color: var(--teal); font-size: 11px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
 .top-actions { display: flex; align-items: center; gap: 10px; }
 .update-note { font-size: 11px; white-space: nowrap; }
+.success-toast { position: fixed; right: 24px; bottom: 24px; z-index: 50; display: flex; align-items: center; gap: 9px; padding: 13px 17px; border: 1px solid #b8dfd0; border-radius: 10px; background: #f0faf5; color: #176b4b; font-weight: 750; box-shadow: 0 10px 30px rgba(28, 52, 55, 0.16); animation: rise-in 220ms ease-out both; }
 .spin { animation: spin 800ms linear infinite; }
 .button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 10px 15px; border: 1px solid transparent; border-radius: 9px; background: var(--teal); color: white; text-decoration: none; cursor: pointer; font-size: 13px; font-weight: 750; box-shadow: 0 5px 12px rgba(8, 127, 120, 0.15); transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease; }
 .button:hover { background: #076d68; box-shadow: 0 7px 16px rgba(8, 127, 120, 0.22); transform: translateY(-1px); }
@@ -175,6 +176,13 @@ h2 { margin: 0; color: var(--ink); font-size: 17px; letter-spacing: -0.3px; }
 .receive-dialog { width: min(100%, 620px); max-height: calc(100vh - 40px); overflow-y: auto; }
 .receive-summary { margin: -2px 0 18px; }
 .receive-actions { display: flex; justify-content: flex-end; gap: 9px; grid-column: 1 / -1; }
+.job-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.button.danger-action { color: #a84937; }
+.button.danger-action:hover:not(:disabled) { border-color: #efc4b9; background: #fff7f4; }
+.report-export-card > .muted { margin: -4px 0 20px; }
+.report-export-controls { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 14px; }
+.report-export-controls .field { min-width: 200px; }
+.report-export-controls .button { margin-bottom: 1px; }
 .dashboard-error { max-width: 1280px; margin: 0 auto 18px; }
 .dashboard-error .button { margin-left: auto; }
 .chart { height: 290px; margin-top: 18px; }

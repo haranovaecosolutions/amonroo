@@ -1,19 +1,4 @@
 type ApiObject = Record<string, unknown>;
-type Inventory = ApiObject & {
-  inventory_id?: number | string;
-  name?: string;
-  is_default?: boolean;
-  default_warehouse?: string;
-  warehouses?: string[];
-};
-
-type InventoryProduct = ApiObject & {
-  id?: number | string;
-  sku?: string;
-  name?: string;
-  stock?: Record<string, number | string>;
-  thresholds?: Record<string, number | string>;
-};
 
 function objectEntries(value: unknown): [string, ApiObject][] {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
@@ -61,81 +46,6 @@ async function callBaseLinker(method: string, parameters: ApiObject = {}) {
     throw new Error(`BaseLinker ${method} failed: ${message}`);
   }
   return result;
-}
-
-async function resolveInventory() {
-  const result = await callBaseLinker('getInventories');
-  const inventories = Array.isArray(result.inventories) ? result.inventories as Inventory[] : [];
-  const configuredId = process.env.BASELINKER_INVENTORY_ID;
-  const inventory = configuredId
-    ? inventories.find((item) => String(item.inventory_id) === configuredId)
-    : inventories.find((item) => item.is_default === true) ?? (inventories.length === 1 ? inventories[0] : undefined);
-
-  if (!inventory) {
-    throw new Error(configuredId
-      ? 'The configured BaseLinker inventory was not found.'
-      : 'BaseLinker has multiple inventories and no default. Set BASELINKER_INVENTORY_ID.');
-  }
-
-  const configuredWarehouse = process.env.BASELINKER_WAREHOUSE_ID;
-  const warehouseId = configuredWarehouse || inventory.default_warehouse || '';
-  if (!warehouseId || (inventory.warehouses && !inventory.warehouses.includes(warehouseId))) {
-    throw new Error('The selected BaseLinker inventory has no matching default warehouse. Set BASELINKER_WAREHOUSE_ID.');
-  }
-  return { inventoryId: numericValue(inventory.inventory_id), warehouseId };
-}
-
-export async function getBaseLinkerProducts() {
-  const { inventoryId, warehouseId } = await resolveInventory();
-  const listedProducts: InventoryProduct[] = [];
-  const maxPages = 50;
-
-  for (let page = 1; page <= maxPages; page += 1) {
-    const result = await callBaseLinker('getInventoryProductsList', { inventory_id: inventoryId, page, include_variants: true });
-    const entries = objectEntries(result.products);
-    listedProducts.push(...entries.map(([id, product]) => ({ ...product, id: textValue(product.id) || id })));
-    if (entries.length < 1000) break;
-    if (page === maxPages) throw new Error('BaseLinker inventory exceeds the live display limit of 50,000 products.');
-  }
-
-  const productDetails = new Map<string, ApiObject>();
-  const batches = Array.from({ length: Math.ceil(listedProducts.length / 100) }, (_, index) => listedProducts.slice(index * 100, (index + 1) * 100));
-  for (let start = 0; start < batches.length; start += 5) {
-    const results = await Promise.all(batches.slice(start, start + 5).map((batch) => callBaseLinker('getInventoryProductsData', {
-      inventory_id: inventoryId,
-      products: batch.map((product) => numericValue(product.id)),
-    })));
-    for (const result of results) {
-      for (const [id, detail] of objectEntries(result.products)) productDetails.set(id, detail);
-    }
-  }
-
-  const fallbackThreshold = Math.max(0, numericValue(process.env.BASELINKER_LOW_STOCK_FALLBACK, 5));
-  return listedProducts.map((product) => {
-    const id = textValue(product.id);
-    const detail = productDetails.get(id) ?? {};
-    const stock = (detail.stock as Record<string, unknown> | undefined) ?? product.stock;
-    const thresholds = (detail.thresholds as Record<string, unknown> | undefined) ?? product.thresholds;
-    const currentStock = numericValue(stock?.[warehouseId]);
-    const configuredThreshold = numericValue(thresholds?.[warehouseId], 0);
-    const reorderLevel = configuredThreshold > 0 ? configuredThreshold : fallbackThreshold;
-    const sku = textValue(detail.sku) || textValue(product.sku) || id;
-    const name = textValue(detail.name) || textValue(product.name) || sku;
-
-    return {
-      id,
-      sku,
-      name,
-      current_stock: currentStock,
-      stock: currentStock,
-      reorder_level: reorderLevel,
-      reorder: reorderLevel,
-      shortage: Math.max(reorderLevel - currentStock, 0),
-      warehouse_id: warehouseId,
-      warehouse_name: warehouseId,
-      source: 'baselinker',
-    };
-  });
 }
 
 function unixDate(value: unknown) {

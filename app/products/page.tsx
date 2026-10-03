@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from 'react';
-import { CircleAlert, PackageOpen, Plus, Save, Search } from 'lucide-react';
+import { Check, CircleAlert, PackageOpen, Plus, Save, Search, Trash2 } from 'lucide-react';
 import TableScroll from '../components/table-scroll';
 
 type Design = { id?: string; sku: string; name: string; allocation_date?: string; delivery_date?: string | null; payment_date?: string | null; payment_status?: string; total_payment?: number; payment_amount?: number; remarks?: string; current_stock?: number; stock?: number; reorder_level?: number; reorder?: number; shortage?: number; warehouse_id?: string; source?: string };
@@ -22,8 +22,15 @@ export default function Products() {
   const [form, setForm] = useState<DesignForm>(emptyDesign);
   const [error, setError] = useState('');
   const [loadError, setLoadError] = useState('');
+  const [saveNotice, setSaveNotice] = useState('');
   const [search, setSearch] = useState('');
   const remarksRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (!saveNotice) return;
+    const timeout = window.setTimeout(() => setSaveNotice(''), 3000);
+    return () => window.clearTimeout(timeout);
+  }, [saveNotice]);
 
   useEffect(() => {
     let active = true;
@@ -61,6 +68,7 @@ export default function Products() {
     if (!response.ok) { setError(result.error || 'Could not save design.'); return; }
     setData([...data, result]);
     setForm(emptyDesign());
+    setSaveNotice('Data saved');
   }
 
   async function saveDetails(design: Design) {
@@ -69,6 +77,21 @@ export default function Products() {
     const result = await response.json();
     if (!response.ok) { setError(result.error || 'Could not update design.'); return; }
     setData(data.map((item) => item.sku === design.sku ? { ...item, ...result } : item));
+    setSaveNotice('Data saved');
+  }
+
+  async function deleteDesign(design: Design) {
+    if (!window.confirm(`Delete design ${design.sku}? This cannot be undone.`)) return;
+    setError('');
+    try {
+      const response = await fetch(`/api/products?sku=${encodeURIComponent(design.sku)}`, { method: 'DELETE' });
+      const result = await response.json();
+      if (!response.ok) { setError(result.error || 'Could not delete design.'); return; }
+      setData(data.filter((item) => item.sku !== design.sku));
+      setSaveNotice('Design deleted');
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Could not delete design.');
+    }
   }
 
   function updateDesign(sku: string, changes: Partial<Design>) {
@@ -76,7 +99,6 @@ export default function Products() {
   }
 
   const searchTerm = search.trim().toLowerCase();
-  const liveInventory = data.some((design) => design.source === 'baselinker');
   const filteredDesigns = data.filter((design) => [
     design.sku, design.name, design.allocation_date, design.delivery_date, design.payment_date,
     design.payment_status, design.total_payment, design.payment_amount,
@@ -84,9 +106,10 @@ export default function Products() {
   ].some((value) => String(value ?? '').toLowerCase().includes(searchTerm)));
 
   return <>
-    <header className="top"><div><div className="eyebrow">{liveInventory ? 'BaseLinker · live inventory' : 'Design catalogue'}</div><h1>Designs</h1><div className="muted">{liveInventory ? 'Product catalogue and warehouse stock from BaseLinker. This view is read-only.' : 'Track allocation, delivery, payment, and available stock by Design ID.'}</div></div><div className="top-actions"><span className="badge green"><PackageOpen size={13} /> {data.length} designs</span></div></header>
+    {saveNotice && <div className="success-toast" role="status" aria-live="polite"><Check size={16} /> {saveNotice}</div>}
+    <header className="top"><div><div className="eyebrow">Design catalogue</div><h1>Designs</h1><div className="muted">Add designs to Supabase and track allocation, delivery, payment, and available stock by Design ID.</div></div><div className="top-actions"><span className="badge green"><PackageOpen size={13} /> {data.length} designs</span></div></header>
     {loadError && <div className="form-error dashboard-error"><CircleAlert size={15} /> {loadError}</div>}
-    {!liveInventory && <section className="card"><div className="section-heading"><div><div className="eyebrow">New design</div><h2>Add design</h2></div></div><form className="formgrid required-form" onSubmit={save}>
+    <section className="card"><div className="section-heading"><div><div className="eyebrow">New design</div><h2>Add design</h2></div></div><form className="formgrid required-form" onSubmit={save}>
       <div className="field"><label htmlFor="design-id">Design ID</label><input id="design-id" required value={form.design_number} onChange={(event) => setForm({ ...form, design_number: event.target.value })} /></div>
       <div className="field"><label htmlFor="designer-name">Designer Name</label><input id="designer-name" required value={form.designer_name} onChange={(event) => setForm({ ...form, designer_name: event.target.value })} /></div>
       <div className="field"><label htmlFor="allocation-date">Allocation date</label><input id="allocation-date" required type="date" value={form.allocation_date} onChange={(event) => setForm({ ...form, allocation_date: event.target.value })} /></div>
@@ -96,11 +119,11 @@ export default function Products() {
       <div className="field"><label className="optional-field-label" htmlFor="design-remarks">Remarks</label><textarea id="design-remarks" ref={remarksRef} rows={1} value={form.remarks} onChange={(event) => setForm({ ...form, remarks: event.target.value })} /></div>
       {error && <div className="form-error"><CircleAlert size={15} /> {error}</div>}
       <button className="button"><Plus size={15} /> Save design</button>
-    </form></section>}
+    </form></section>
     <section className="section">
       <div className="table-tools"><label className="search-field"><Search size={16} /><input type="search" aria-label="Search designs" placeholder="Search designs..." value={search} onChange={(event) => setSearch(event.target.value)} /></label><span className="muted search-count">{filteredDesigns.length} of {data.length} designs</span></div>
-      <TableScroll><table className="table"><thead><tr><th>Design ID</th><th>{liveInventory ? 'Product' : 'Designer Name'}</th>{liveInventory ? <><th>Available stock</th><th>Warehouse</th><th>Low-stock threshold</th><th>Shortage</th></> : <><th>Allocation</th><th>Delivery</th><th>Payment date</th><th>Payment status</th><th>Total payment</th><th>Amount paid</th><th>Remarks</th><th>Stock</th><th>Reorder</th><th>Shortage</th><th>Action</th></>}</tr></thead>
-        <tbody>{filteredDesigns.map((design) => <tr key={design.id ?? design.sku}>{liveInventory ? <><td><strong>{design.sku}</strong></td><td>{design.name}</td><td>{design.current_stock ?? design.stock ?? 0}</td><td>{design.warehouse_id || '—'}</td><td>{design.reorder_level ?? design.reorder ?? 0}</td><td>{design.shortage ?? 0}</td></> : <><td><strong>{design.sku}</strong></td><td>{design.name}</td><td>{design.allocation_date || '—'}</td><td><input aria-label={`Delivery date for ${design.sku}`} type="date" value={design.delivery_date || ''} onChange={(event) => updateDesign(design.sku, { delivery_date: event.target.value })} /></td><td><input aria-label={`Payment date for ${design.sku}`} type="date" value={design.payment_date || ''} onChange={(event) => updateDesign(design.sku, { payment_date: event.target.value })} /></td><td><select aria-label={`Payment status for ${design.sku}`} value={design.payment_status || 'pending'} onChange={(event) => updateDesign(design.sku, { payment_status: event.target.value })}><option value="pending">Pending</option><option value="partial">Partially paid</option><option value="paid">Paid</option></select></td><td><input aria-label={`Total payment for ${design.sku}`} min="0" step="0.01" type="number" value={design.total_payment ?? 0} onChange={(event) => updateDesign(design.sku, { total_payment: Number(event.target.value) })} /></td><td><input aria-label={`Amount paid for ${design.sku}`} min="0" step="0.01" type="number" value={design.payment_amount ?? 0} onChange={(event) => updateDesign(design.sku, { payment_amount: Number(event.target.value) })} /></td><td className="design-remarks" title={design.remarks}>{design.remarks || '—'}</td><td>{design.current_stock ?? design.stock ?? 0}</td><td>{design.reorder_level ?? design.reorder ?? 0}</td><td>{design.shortage ?? 0}</td><td><button className="button secondary compact" onClick={() => saveDetails(design)}><Save size={13} /> Save</button></td></>}</tr>)}</tbody>
+      <TableScroll><table className="table"><thead><tr><th>Design ID</th><th>Designer Name</th><th>Allocation</th><th>Delivery</th><th>Payment date</th><th>Payment status</th><th>Total payment</th><th>Amount paid</th><th>Remarks</th><th>Stock</th><th>Reorder</th><th>Shortage</th><th>Action</th></tr></thead>
+        <tbody>{filteredDesigns.map((design) => <tr key={design.id ?? design.sku}><td><strong>{design.sku}</strong></td><td>{design.name}</td><td>{design.allocation_date || '—'}</td><td><input aria-label={`Delivery date for ${design.sku}`} type="date" value={design.delivery_date || ''} onChange={(event) => updateDesign(design.sku, { delivery_date: event.target.value })} /></td><td><input aria-label={`Payment date for ${design.sku}`} type="date" value={design.payment_date || ''} onChange={(event) => updateDesign(design.sku, { payment_date: event.target.value })} /></td><td><select aria-label={`Payment status for ${design.sku}`} value={design.payment_status || 'pending'} onChange={(event) => updateDesign(design.sku, { payment_status: event.target.value })}><option value="pending">Pending</option><option value="partial">Partially paid</option><option value="paid">Paid</option></select></td><td><input aria-label={`Total payment for ${design.sku}`} min="0" step="0.01" type="number" value={design.total_payment ?? 0} onChange={(event) => updateDesign(design.sku, { total_payment: Number(event.target.value) })} /></td><td><input aria-label={`Amount paid for ${design.sku}`} min="0" step="0.01" type="number" value={design.payment_amount ?? 0} onChange={(event) => updateDesign(design.sku, { payment_amount: Number(event.target.value) })} /></td><td className="design-remarks" title={design.remarks}>{design.remarks || '—'}</td><td>{design.current_stock ?? design.stock ?? 0}</td><td>{design.reorder_level ?? design.reorder ?? 0}</td><td>{design.shortage ?? 0}</td><td className="job-actions"><button className="button secondary compact" onClick={() => saveDetails(design)}><Save size={13} /> Save</button><button className="button secondary compact danger-action" onClick={() => deleteDesign(design)}><Trash2 size={13} /> Delete</button></td></tr>)}</tbody>
       </table>{filteredDesigns.length === 0 && <div className="empty-state">{searchTerm ? 'No designs match your search.' : 'No designs have been added yet.'}</div>}</TableScroll>
     </section>
   </>;

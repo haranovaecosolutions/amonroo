@@ -89,6 +89,7 @@ export default function Dashboard() {
   const watchJobs = data.jobs.filter((job) => !['received', 'cancelled'].includes(job.status ?? '')).sort((left, right) => jobDays(left) - jobDays(right)).slice(0, 5);
   const recentOrders = [...data.orders].sort((left, right) => new Date(right.ordered_at).getTime() - new Date(left.ordered_at).getTime()).slice(0, 5);
   const attentionTotal = outOfStock.length + lowStock.length + attentionJobs.length;
+  const designAndManufacturingAttention = stockAtRisk.length + attentionJobs.length;
 
   return <>
     <header className="top dashboard-header"><div><div className="eyebrow">Operations overview · {new Date().toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' })}</div><h1>Inventory overview</h1><div className="muted">Stock, customer demand, orders, and production in one working view.</div></div><div className="top-actions"><span className="muted update-note">{lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Loading live data'}</span><button className="button secondary" onClick={() => void refresh()} disabled={refreshing}><RefreshCw size={15} className={refreshing ? 'spin' : ''} /> Refresh</button><a className="button secondary" href="/api/export"><Download size={15} /> Export</a></div></header>
@@ -100,7 +101,7 @@ export default function Dashboard() {
       <Link className="card stat-card warning dashboard-stat" href="/attention"><div className="label"><AlertTriangle size={14} /> Low stock</div><div className="metric">{lowStock.length}</div><div className="metric-note">At or below reorder level</div></Link>
       <Link className="card stat-card dashboard-stat" href="/orders"><div className="label"><ShoppingBag size={14} /> Current orders</div><div className="metric">{openOrders.length}</div><div className="metric-note">Active in the last 90 days</div></Link>
       <Link className="card stat-card dashboard-stat" href="/orders"><div className="label"><ClipboardCheck size={14} /> Demand</div><div className="metric">{demandUnits.toLocaleString()}</div><div className="metric-note">Units still unallocated</div></Link>
-      <Link className="card stat-card alert dashboard-stat" href="/attention"><div className="label"><Truck size={14} /> Jobs needing attention</div><div className="metric">{attentionJobs.length}</div><div className="metric-note">Open combined attention queue <ArrowRight size={12} /></div></Link>
+      <Link className="card stat-card alert dashboard-stat" href="/attention"><div className="label"><Truck size={14} /> Jobs needing attention</div><div className="metric">{designAndManufacturingAttention}</div><div className="metric-note">Design and manufacturing only <ArrowRight size={12} /></div></Link>
     </div>
 
     <div className={`dashboard-attention ${attentionTotal ? 'has-attention' : ''}`}><div className="dashboard-attention-icon"><AlertTriangle size={17} /></div><div><strong>{attentionTotal ? `${attentionTotal} items need a look` : 'No urgent stock or delivery issues'}</strong><div className="muted">{outOfStock.length} out of stock · {lowStock.length} low stock · {attentionJobs.length} urgent manufacturing jobs</div></div><Link className="button secondary compact" href="/attention">Review attention queue <ArrowRight size={14} /></Link></div>

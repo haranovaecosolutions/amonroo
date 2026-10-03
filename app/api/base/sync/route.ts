@@ -1,19 +1,16 @@
 import { NextResponse } from 'next/server';
+import { requireCronAuthorization } from '@/lib/cron-auth';
 import { serverDb } from '@/lib/server-db';
 
 type BaseOrder = Record<string, unknown>;
-
-function authorized(request: Request) {
-  const secret = process.env.CRON_SECRET;
-  return !secret || request.headers.get('authorization') === `Bearer ${secret}`;
-}
 
 function text(value: unknown) {
   return typeof value === 'string' || typeof value === 'number' ? String(value) : '';
 }
 
 export async function POST(request: Request) {
-  if (!authorized(request)) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+  const authorizationError = requireCronAuthorization(request);
+  if (authorizationError) return authorizationError;
   const apiUrl = process.env.BASE_API_ORDERS_URL;
   const token = process.env.BASE_API_TOKEN;
   const db = serverDb();
