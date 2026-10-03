@@ -26,14 +26,6 @@ Amonroo is a small inventory command centre for products, customer orders, manuf
 
 ## Required credentials
 
-### Site password
-
-- `INVENTORY_AUTH_ENABLED`: set to `true` to require the password page. It is disabled for local development unless enabled; production returns HTTP 503 until explicitly set to `true`.
-- `INVENTORY_PASSWORD`: the password required to open the website.
-- `INVENTORY_SESSION_SECRET`: a long, random server-only secret used to sign login sessions (with a 14-day maximum age). The browser cookie expires when the browser session ends. Generate a unique value for each environment.
-
-To turn the password gate back on, set `INVENTORY_AUTH_ENABLED=true` and configure both password settings in the server environment. Do not use `NEXT_PUBLIC_` variables or commit these secrets.
-
 ### Supabase
 
 - `NEXT_PUBLIC_SUPABASE_URL`: the project URL.
@@ -60,18 +52,17 @@ Important: `amonroo.update.ai@gmail.com` cannot normally be used as a Resend sen
 ## Deployment
 
 1. Run the current [`supabase/schema.sql`](supabase/schema.sql) in the Supabase SQL Editor before deploying. It enables row-level security, blocks direct access from the public Supabase API roles, and gives the server-only `service_role` the permissions the app needs. Never add a service-role/secret key to browser code.
-2. Push the repository to GitHub and import it into Vercel. Use the repository root as the project root and keep the default Next.js build settings.
+2. Push the repository to GitHub and import it into Vercel. Use the repository root as the project root and keep the default Next.js build settings. The site is publicly accessible to anyone with its URL, without a password.
 3. Add environment variables in Vercel **Project Settings → Environment Variables** for each environment that should run:
-   - Required: `INVENTORY_AUTH_ENABLED=true`, `INVENTORY_PASSWORD`, `INVENTORY_SESSION_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY`.
-   - Generate a unique, long random `INVENTORY_SESSION_SECRET` and password for production. Do not reuse the local `.env.local` values.
+   - Required: `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
    - Optional BaseLinker orders: `BASELINKER_API_TOKEN`.
    - Optional email alerts: `CRON_SECRET`, `RESEND_API_KEY`, `ALERT_FROM_EMAIL`, and `ALERT_TO_EMAIL`.
-4. If Preview deployments use production data, add the same password gate and a separate, least-privilege test database where possible. Otherwise, enable the gate for Preview too or leave sensitive production credentials out of Preview.
-5. Redeploy after changing Vercel environment variables. The production proxy fails closed with HTTP 503 if `INVENTORY_AUTH_ENABLED=true` is missing.
+4. Preview and production deployments are both publicly accessible. Do not add production credentials to previews that should not have access to live data.
+5. Redeploy after changing Vercel environment variables.
 6. The configured Vercel cron calls `/api/alerts` daily at 07:00 UTC. Vercel sends `Authorization: Bearer <CRON_SECRET>` when `CRON_SECRET` is configured. Configure and verify a Resend sender before relying on alerts; if alerts are not being used, remove or disable the cron entry in [`vercel.json`](vercel.json).
-7. Configure the production domain in Vercel and verify HTTPS and the password login before importing live business data.
+7. Configure the production domain in Vercel. Anyone with the public URL will be able to use the app.
 
-The app uses one shared site password, not individual user accounts. Use it only for a small trusted group; for multiple staff accounts, per-user access, or audit trails, replace the shared gate with Supabase Auth and role-based authorization. Configure Vercel Firewall/rate limiting for `/api/auth/login` before exposing the login endpoint broadly.
+Because there is no sign-in, anyone with the site URL can view and modify inventory data and access the app's data/export APIs. Do not deploy sensitive business or customer data publicly; add authentication and authorization controls if access needs to be restricted.
 
 Vercel Preview deployments should not share production secrets by default. Keep `.env.local` and all environment files out of Git; `.gitignore` already excludes them.
 
@@ -83,7 +74,7 @@ Use **Export JSON** or download `/api/export` regularly and store dated exports 
 
 Use **Export reports** in the app navigation to download an Excel workbook with Designs and Manufacturing sheets for the selected allocation-date period. Weekly reports use Monday through Sunday.
 
-Before launch, take a database backup, enable Supabase backups/point-in-time recovery appropriate to the business, and regularly test restoring an export or database backup. The schema script is intended to be repeatable and additive, but review and test it on a separate staging Supabase project before applying it to production. Test the login, design creation, manufacturing receipt, exports, and scheduled alerts there before production releases.
+Before launch, take a database backup, enable Supabase backups/point-in-time recovery appropriate to the business, and regularly test restoring an export or database backup. The schema script is intended to be repeatable and additive, but review and test it on a separate staging Supabase project before applying it to production. Test the design creation, manufacturing receipt, exports, and scheduled alerts there before production releases.
 
 ## Validation
 
