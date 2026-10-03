@@ -30,7 +30,7 @@ Amonroo is a small inventory command centre for products, customer orders, manuf
 
 - `INVENTORY_AUTH_ENABLED`: set to `true` to require the password page. It is disabled for local development unless enabled; production returns HTTP 503 until explicitly set to `true`.
 - `INVENTORY_PASSWORD`: the password required to open the website.
-- `INVENTORY_SESSION_SECRET`: a long, random server-only secret used to sign 14-day login sessions. Generate a unique value for each environment.
+- `INVENTORY_SESSION_SECRET`: a long, random server-only secret used to sign login sessions (with a 14-day maximum age). The browser cookie expires when the browser session ends. Generate a unique value for each environment.
 
 To turn the password gate back on, set `INVENTORY_AUTH_ENABLED=true` and configure both password settings in the server environment. Do not use `NEXT_PUBLIC_` variables or commit these secrets.
 

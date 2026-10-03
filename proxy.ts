@@ -15,12 +15,16 @@ export async function proxy(request: NextRequest) {
     }
     return NextResponse.next();
   }
-  if (pathname === '/login' || pathname === '/api/auth/login' || pathname === '/api/auth/logout') {
+  if (pathname === '/api/auth/login' || pathname === '/api/auth/logout') {
     return NextResponse.next();
   }
 
   const token = request.cookies.get(SESSION_COOKIE)?.value;
-  if (await verifySiteSessionToken(token)) return NextResponse.next();
+  if (await verifySiteSessionToken(token)) {
+    if (pathname === '/login') return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.next();
+  }
+  if (pathname === '/login') return NextResponse.next();
 
   if (pathname.startsWith('/api/')) {
     return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });

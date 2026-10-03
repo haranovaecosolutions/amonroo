@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
-import { createSiteSessionToken, SESSION_COOKIE, SESSION_MAX_AGE } from '@/lib/site-auth';
+import { createSiteSessionToken, SESSION_COOKIE } from '@/lib/site-auth';
 
 export async function POST(request: Request) {
   const expectedPassword = process.env.INVENTORY_PASSWORD;
@@ -27,10 +27,9 @@ export async function POST(request: Request) {
   const response = NextResponse.json({ authenticated: true });
   response.cookies.set(SESSION_COOKIE, await createSiteSessionToken(), {
     httpOnly: true,
-    maxAge: SESSION_MAX_AGE,
     path: '/',
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: new URL(request.url).protocol === 'https:',
   });
   return response;
 }

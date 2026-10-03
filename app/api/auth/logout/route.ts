@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     maxAge: 0,
     path: '/',
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: new URL(request.url).protocol === 'https:',
   });
   return response;
 }
