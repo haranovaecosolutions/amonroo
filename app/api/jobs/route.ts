@@ -36,9 +36,15 @@ export async function GET() {
 		? await db.from('inventory_products').select('id,sku_id').in('id', productIds)
 		: { data: [], error: null };
 	if (productError) return NextResponse.json({ error: productError.message }, { status: 500 });
+	const jobIds = data.map((job) => job.id);
+	const { data: unitSkus, error: unitSkuError } = jobIds.length
+		? await db.from('manufacturer_unit_skus').select('job_id,sku_id').in('job_id', jobIds).order('received_at')
+		: { data: [], error: null };
+	if (unitSkuError) return NextResponse.json({ error: unitSkuError.message }, { status: 500 });
 	return NextResponse.json(data.map((job) => ({
 		...job,
 		sku_id: products.find((product) => product.id === job.product_id)?.sku_id ?? '',
+		sku_ids: unitSkus.filter((unitSku) => unitSku.job_id === job.id).map((unitSku) => unitSku.sku_id),
 	})), { headers: { 'X-Data-Source': 'supabase' } });
 }
 
@@ -184,22 +190,40 @@ export async function PATCH(request: Request) {
 	if (!body.id || !Number.isInteger(received) || received < 1 || !validDate(body.received_at)) {
 		return NextResponse.json({ error: 'Enter a valid quantity received and receipt date.' }, { status: 400 });
 	}
+	const submittedSkuIds: unknown = body.sku_ids;
+	if (typeof submittedSkuIds !== 'undefined' && (!Array.isArray(submittedSkuIds) || !submittedSkuIds.every((skuId: unknown) => typeof skuId === 'string'))) {
+		return NextResponse.json({ error: 'SKU IDs must be supplied as a list of text values.' }, { status: 400 });
+	}
+	const skuIds = Array.isArray(submittedSkuIds) ? submittedSkuIds.map((skuId: string) => skuId.trim()) : [];
+	if (skuIds.length > 0 && (
+		skuIds.length !== received ||
+		skuIds.some((skuId) => !skuId || skuId.length > 100) ||
+		new Set(skuIds.map((skuId) => skuId.toLowerCase())).size !== skuIds.length
+	)) {
+		return NextResponse.json({ error: 'Enter one distinct SKU ID of 1–100 characters for each received unit, or leave the list empty.' }, { status: 400 });
+	}
 
 	const db = serverDb();
 	if (!db) {
 		const job = demo.find((item) => item.id === body.id);
 		if (!job) return NextResponse.json({ error: 'Manufacturing record not found.' }, { status: 404 });
 		if (received > job.quantity_outstanding) return NextResponse.json({ error: `Only ${job.quantity_outstanding} units are outstanding for this record.` }, { status: 400 });
+		if (skuIds.length > 0) job.sku_ids = [...job.sku_ids, ...skuIds];
 		job.quantity_received += received;
 		job.quantity_outstanding -= received;
 		job.status = job.quantity_outstanding === 0 ? 'received' : 'partially_received';
 		return NextResponse.json(job);
 	}
 
-	const { data, error } = await db.rpc('receive_manufacturer_delivery', { p_job_id: body.id, p_quantity: received, p_sku_ids: [], p_received_at: body.received_at });
+	const { data, error } = await db.rpc('receive_manufacturer_delivery', { p_job_id: body.id, p_quantity: received, p_sku_ids: skuIds, p_received_at: body.received_at });
 	if (error?.code === 'P0002') return NextResponse.json({ error: error.message }, { status: 404 });
 	if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-	return NextResponse.json(data[0]);
+	const { data: savedUnitSkus, error: savedUnitSkuError } = await db.from('manufacturer_unit_skus')
+		.select('sku_id')
+		.eq('job_id', body.id)
+		.order('received_at');
+	if (savedUnitSkuError) return NextResponse.json({ error: savedUnitSkuError.message }, { status: 500 });
+	return NextResponse.json({ ...data[0], sku_ids: savedUnitSkus.map((unitSku) => unitSku.sku_id) });
 }
 
 export async function DELETE(request: Request) {

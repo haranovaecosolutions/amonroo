@@ -8,11 +8,13 @@ Amonroo is a small inventory command centre for products, customer orders, manuf
 - Design catalogue with unique design numbers, allocation/delivery/payment tracking, and reorder levels.
 - Editable manufacturer job details with expected return dates and urgency colours.
 - Optional unique SKU ID per design, reused across manufacturing jobs regardless of quantity.
+- Optional unique unit SKU IDs captured for each received manufacturing unit and displayed in the manufacturing table.
 - Confirmed deletion for unused designs and unreceived manufacturing jobs; design records with related history are protected, and deleting an unreceived job restores its sent quantity to stock.
 - Automatic stock ledger entries when goods are sent to or received from a manufacturer.
 - Partial receipts and remaining-quantity tracking.
 - Dashboard metrics, stock health, manufacturer pipeline, and analytics charts.
 - JSON export at `/api/export` for local archiving.
+- One-time manual SQL script to archive and clear design/manufacturing records and related stock/SKU history when intentionally starting fresh.
 - Excel report downloads for designs and manufacturing by day, week, month, or year.
 - Read-only BaseLinker orders and Supabase-backed designs and manufacturing records.
 - Low-stock and deadline email alerts at `/api/alerts`.
@@ -27,6 +29,8 @@ Amonroo is a small inventory command centre for products, customer orders, manuf
 ### Existing Supabase projects
 
 For a project that has already run the original schema, run [`supabase/migrations/20261005061000_archive_website_deleted_data.sql`](supabase/migrations/20261005061000_archive_website_deleted_data.sql) in the Supabase SQL Editor. It creates the private `deleted_data` archive, installs the website's delete functions, and asks PostgREST to reload its schema cache. Deletions through the website then archive the deleted row and remove it from the active table atomically. The archive has no API-role or service-role table access; view its contents manually in Supabase Studio or the SQL Editor.
+
+To intentionally start fresh while keeping an audit archive, run [`supabase/manual/clear_design_manufacturing_data.sql`](supabase/manual/clear_design_manufacturing_data.sql) once in the Supabase SQL Editor. This archives and removes all designs, manufacturing jobs, related order lines, dead-design markers, unit SKUs, and inventory transactions in one transaction. It preserves customer order headers, manufacturers, alerts (with links to cleared records removed), the schema, and all existing rows in `deleted_data`. Review the scope carefully before running.
 
 ## Required credentials
 
