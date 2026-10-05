@@ -49,8 +49,9 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ design_id: designId });
   }
 
-  const { data, error } = await db.from('dead_designs').delete().eq('design_id', designId).select('design_id').maybeSingle();
+  const { data, error } = await db.rpc('restore_dead_design', { p_design_id: designId });
+  if (error?.code === 'P0002') return NextResponse.json({ error: error.message }, { status: 404 });
+  if (error?.code === 'PGRST202') return NextResponse.json({ error: 'The Supabase delete function is not installed or its schema cache is stale. Run supabase/migrations/20261005061000_archive_website_deleted_data.sql in the Supabase SQL Editor, then retry.' }, { status: 503 });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  if (!data) return NextResponse.json({ error: 'Dead design not found.' }, { status: 404 });
-  return NextResponse.json(data);
+  return NextResponse.json({ design_id: data });
 }

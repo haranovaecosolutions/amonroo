@@ -218,6 +218,7 @@ export async function DELETE(request: Request) {
 	const { data, error } = await db.rpc('delete_unreceived_manufacturer_job', { p_job_id: id });
 	if (error?.code === 'P0002') return NextResponse.json({ error: error.message }, { status: 404 });
 	if (error?.code === 'P0001') return NextResponse.json({ error: error.message }, { status: 409 });
+	if (error?.code === 'PGRST202') return NextResponse.json({ error: 'The Supabase delete function is not installed or its schema cache is stale. Run supabase/migrations/20261005061000_archive_website_deleted_data.sql in the Supabase SQL Editor, then retry.' }, { status: 503 });
 	if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 	return NextResponse.json({ job_number: data });
 }

@@ -129,7 +129,7 @@ export default function Jobs() {
   async function deleteJob(job: Job) {
     if (!job.id || (job.quantity_received ?? 0) > 0) return;
     const jobNumber = job.job_number ?? job.job ?? 'this record';
-    if (!window.confirm(`Delete manufacturing record ${jobNumber}? The sent quantity will be restored to stock. This cannot be undone.`)) return;
+    if (!window.confirm(`Delete manufacturing record ${jobNumber}? The sent quantity will be restored to stock, and the record will be kept in the private Supabase deleted-data archive for manual review.`)) return;
     setError('');
     setDeletingJobId(job.id);
     try {

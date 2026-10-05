@@ -72,6 +72,7 @@ export async function DELETE(request: Request) {
 	const { data, error } = await db.rpc('delete_unused_inventory_product', { p_sku: sku });
 	if (error?.code === 'P0002') return NextResponse.json({ error: error.message }, { status: 404 });
 	if (error?.code === 'P0001') return NextResponse.json({ error: error.message }, { status: 409 });
+	if (error?.code === 'PGRST202') return NextResponse.json({ error: 'The Supabase delete function is not installed or its schema cache is stale. Run supabase/migrations/20261005061000_archive_website_deleted_data.sql in the Supabase SQL Editor, then retry.' }, { status: 503 });
 	if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 	return NextResponse.json({ sku: data });
 }

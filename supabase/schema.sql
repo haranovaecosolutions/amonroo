@@ -119,10 +119,21 @@ create table if not exists public.alert_log (
  recipient_email text not null, sent_at timestamptz not null default now(), provider_message_id text
 );
 
+create table if not exists public.deleted_data (
+ id bigint generated always as identity primary key,
+ source_table text not null,
+ source_record_id text not null,
+ deleted_at timestamptz not null default now(),
+ record_data jsonb not null
+);
+
+create index if not exists deleted_data_deleted_at_idx on public.deleted_data(deleted_at desc);
+
 create or replace function public.delete_unused_inventory_product(p_sku text)
 returns text
 language plpgsql
-set search_path = public
+security definer
+set search_path = public, pg_temp
 as $$
 declare
  product_row public.inventory_products%rowtype;
@@ -135,6 +146,8 @@ begin
 	 or exists (select 1 from public.manufacturer_unit_skus where product_id = product_row.id) then
 	raise exception 'This design is already used by manufacturing, orders, or stock transactions and cannot be deleted.' using errcode = 'P0001';
  end if;
+ insert into public.deleted_data(source_table, source_record_id, record_data)
+ values ('inventory_products', product_row.id::text, to_jsonb(product_row));
  update public.alert_log set product_id = null where product_id = product_row.id;
  delete from public.inventory_products where id = product_row.id;
  return product_row.sku;
@@ -146,7 +159,8 @@ grant execute on function public.delete_unused_inventory_product(text) to servic
 create or replace function public.delete_unreceived_manufacturer_job(p_job_id uuid)
 returns text
 language plpgsql
-set search_path = public
+security definer
+set search_path = public, pg_temp
 as $$
 declare
  job_row public.manufacturer_jobs%rowtype;
@@ -158,6 +172,8 @@ begin
 	raise exception 'Manufacturing records with received units or unit SKU history cannot be deleted.' using errcode = 'P0001';
  end if;
 
+ insert into public.deleted_data(source_table, source_record_id, record_data)
+ values ('manufacturer_jobs', job_row.id::text, to_jsonb(job_row));
  update public.inventory_transactions set job_id = null where job_id = p_job_id;
  insert into public.inventory_transactions(product_id, transaction_type, quantity, reference, notes)
  values (job_row.product_id, 'adjustment', job_row.quantity_sent, job_row.job_number,
@@ -169,6 +185,30 @@ end;
 $$;
 revoke all on function public.delete_unreceived_manufacturer_job(uuid) from public, anon, authenticated;
 grant execute on function public.delete_unreceived_manufacturer_job(uuid) to service_role;
+
+create or replace function public.restore_dead_design(p_design_id text)
+returns text
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+ dead_design_row public.dead_designs%rowtype;
+begin
+ select * into dead_design_row
+ from public.dead_designs
+ where design_id = p_design_id
+ for update;
+ if not found then raise exception 'Dead design % was not found.', p_design_id using errcode = 'P0002'; end if;
+
+ insert into public.deleted_data(source_table, source_record_id, record_data)
+ values ('dead_designs', dead_design_row.design_id, to_jsonb(dead_design_row));
+ delete from public.dead_designs where design_id = dead_design_row.design_id;
+ return dead_design_row.design_id;
+end;
+$$;
+revoke all on function public.restore_dead_design(text) from public, anon, authenticated;
+grant execute on function public.restore_dead_design(text) to service_role;
 
 create index if not exists jobs_deadline_idx on public.manufacturer_jobs(expected_return_date,status);
 create index if not exists transactions_product_idx on public.inventory_transactions(product_id,occurred_at);
@@ -254,6 +294,7 @@ alter table public.manufacturer_jobs enable row level security;
 alter table public.inventory_transactions enable row level security;
 alter table public.manufacturer_unit_skus enable row level security;
 alter table public.alert_log enable row level security;
+alter table public.deleted_data enable row level security;
 
 revoke all on table
  public.inventory_products,
@@ -268,6 +309,8 @@ revoke all on table
  public.inventory_stock_summary,
  public.manufacturer_job_summary
 from anon, authenticated;
+
+revoke all on table public.deleted_data from public, anon, authenticated, service_role;
 
 grant all on table
  public.inventory_products,

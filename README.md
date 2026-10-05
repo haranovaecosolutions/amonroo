@@ -24,6 +24,10 @@ Amonroo is a small inventory command centre for products, customer orders, manuf
 3. Create a Supabase project and run [`supabase/schema.sql`](supabase/schema.sql) in the Supabase SQL editor.
 4. Start the app with `npm run dev`, then open `http://localhost:3000`.
 
+### Existing Supabase projects
+
+For a project that has already run the original schema, run [`supabase/migrations/20261005061000_archive_website_deleted_data.sql`](supabase/migrations/20261005061000_archive_website_deleted_data.sql) in the Supabase SQL Editor. It creates the private `deleted_data` archive, installs the website's delete functions, and asks PostgREST to reload its schema cache. Deletions through the website then archive the deleted row and remove it from the active table atomically. The archive has no API-role or service-role table access; view its contents manually in Supabase Studio or the SQL Editor.
+
 ## Required credentials
 
 ### Supabase

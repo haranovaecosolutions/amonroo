@@ -81,7 +81,7 @@ export default function Products() {
   }
 
   async function deleteDesign(design: Design) {
-    if (!window.confirm(`Delete design ${design.sku}? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete design ${design.sku}? It will be removed from active inventory and kept in the private Supabase deleted-data archive for manual review.`)) return;
     setError('');
     try {
       const response = await fetch(`/api/products?sku=${encodeURIComponent(design.sku)}`, { method: 'DELETE' });
