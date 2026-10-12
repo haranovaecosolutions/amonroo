@@ -216,9 +216,8 @@ export async function PATCH(request: Request) {
 	if (!db) {
 		const job = demo.find((item) => item.id === body.id);
 		if (!job) return NextResponse.json({ error: 'Manufacturing record not found.' }, { status: 404 });
-		if (received > job.quantity_outstanding) return NextResponse.json({ error: `Only ${job.quantity_outstanding} units are outstanding for this record.` }, { status: 400 });
 		job.quantity_received += received;
-		job.quantity_outstanding -= received;
+		job.quantity_outstanding = Math.max(job.quantity_sent - job.quantity_received - (job.quantity_rejected ?? 0), 0);
 		job.status = job.quantity_outstanding === 0 ? 'received' : 'partially_received';
 		return NextResponse.json(job);
 	}
@@ -227,7 +226,11 @@ export async function PATCH(request: Request) {
 	if (error?.code === 'P0002') return NextResponse.json({ error: error.message }, { status: 404 });
 	if (error?.code === 'PGRST202') return NextResponse.json({ error: 'The shared-design-SKU receipt function is not installed or its schema cache is stale. Run supabase/migrations/20261012170800_shared_design_sku_manufacturing.sql in the Supabase SQL Editor, then retry.' }, { status: 503 });
 	if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-	return NextResponse.json(data[0]);
+	const job = data[0];
+	return NextResponse.json({
+		...job,
+		quantity_outstanding: Math.max(job.quantity_sent - job.quantity_received - (job.quantity_rejected ?? 0), 0),
+	});
 }
 
 export async function DELETE(request: Request) {

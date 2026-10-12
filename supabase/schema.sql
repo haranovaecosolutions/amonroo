@@ -225,15 +225,13 @@ set search_path = public
 as $$
 declare
  job_row public.manufacturer_jobs%rowtype;
- outstanding integer;
  total_received integer;
  next_status text;
 begin
  select * into job_row from public.manufacturer_jobs where id = p_job_id for update;
  if not found then raise exception 'Job not found.' using errcode = 'P0002'; end if;
- outstanding := greatest(job_row.quantity_sent - job_row.quantity_received - job_row.quantity_rejected, 0);
- if p_quantity < 1 or p_quantity > outstanding then
-	raise exception 'Received quantity must be from 1 to %.', outstanding using errcode = '22023';
+ if p_quantity < 1 then
+	raise exception 'Received quantity must be at least 1.' using errcode = '22023';
  end if;
  insert into public.inventory_transactions(product_id, job_id, transaction_type, quantity, reference, notes, occurred_at)
  values (job_row.product_id, p_job_id, 'received_from_manufacturer', p_quantity, job_row.job_number, 'Received from manufacturer', p_received_at::timestamptz);
