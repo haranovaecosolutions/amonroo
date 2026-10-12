@@ -4,7 +4,7 @@ import { serverDb } from '@/lib/server-db';
 type JobRecord = {
 	id: string; job: string; job_number: string; product: string; product_sku: string;
 	manufacturer: string; qty: number; quantity_sent: number; quantity_received: number;
-	quantity_outstanding: number; days: number; days_remaining: number; expected_return_date: string;
+	quantity_rejected?: number; quantity_outstanding: number; days: number; days_remaining: number; expected_return_date: string;
 	allocation_date: string; status: string; payment_status: string; total_payment: number;
 	amount_paid: number; reorder_number: number; remarks: string; sku_id?: string;
 };
@@ -145,7 +145,12 @@ export async function PATCH(request: Request) {
 		const manufacturerName = typeof body.manufacturer === 'string' ? body.manufacturer.trim() : '';
 		const remarks = typeof body.remarks === 'string' ? body.remarks.trim() : '';
 		const reorderNumber = Number(body.reorder_number);
-		if (!jobId || !manufacturerName || !validDate(body.allocation_date) || !validDate(body.expected_return_date) ||
+		const quantitySent = Number(body.quantity_sent);
+		const quantityReceived = Number(body.quantity_received);
+		const validStatuses = ['draft', 'sent', 'in_production', 'partially_received', 'received', 'overdue', 'cancelled'];
+		if (!jobId || !manufacturerName || !Number.isInteger(quantitySent) || quantitySent < 1 ||
+			!Number.isInteger(quantityReceived) || quantityReceived < 0 || !validStatuses.includes(body.status) ||
+			!validDate(body.allocation_date) || !validDate(body.expected_return_date) ||
 			!['pending', 'partial', 'paid'].includes(body.payment_status) || !validAmount(body.total_payment) ||
 			!validAmount(body.amount_paid) || !Number.isInteger(reorderNumber) || reorderNumber < 0) {
 			return NextResponse.json({ error: 'Complete all editable manufacturing fields with valid values.' }, { status: 400 });
@@ -157,7 +162,7 @@ export async function PATCH(request: Request) {
 		if (!db) {
 			const job = demo.find((item) => item.id === jobId);
 			if (!job) return NextResponse.json({ error: 'Manufacturing record not found.' }, { status: 404 });
-			Object.assign(job, { manufacturer: manufacturerName, allocation_date: body.allocation_date, expected_return_date: body.expected_return_date, payment_status: body.payment_status, total_payment: totalPayment, amount_paid: amountPaid, reorder_number: reorderNumber, remarks });
+			Object.assign(job, { manufacturer: manufacturerName, quantity_sent: quantitySent, qty: quantitySent, quantity_received: quantityReceived, quantity_outstanding: Math.max(quantitySent - quantityReceived - (job.quantity_rejected ?? 0), 0), status: body.status, allocation_date: body.allocation_date, expected_return_date: body.expected_return_date, payment_status: body.payment_status, total_payment: totalPayment, amount_paid: amountPaid, reorder_number: reorderNumber, remarks });
 			job.days = Math.ceil((new Date(`${body.expected_return_date}T00:00:00Z`).getTime() - new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z').getTime()) / 86400000);
 			job.days_remaining = job.days;
 			return NextResponse.json(job);
@@ -172,22 +177,27 @@ export async function PATCH(request: Request) {
 		}
 		if (manufacturerError || !manufacturer) return NextResponse.json({ error: manufacturerError?.message || 'Could not save manufacturer.' }, { status: 400 });
 
-		const { data, error } = await db.from('manufacturer_jobs').update({
-			manufacturer_id: manufacturer.id,
-			allocation_date: body.allocation_date,
-			expected_return_date: body.expected_return_date,
-			payment_status: body.payment_status,
-			total_payment: totalPayment,
-			amount_paid: amountPaid,
-			reorder_number: reorderNumber,
-			remarks,
-			notes: remarks,
-			updated_at: new Date().toISOString(),
-		}).eq('id', jobId).select('id,manufacturer_id,allocation_date,expected_return_date,payment_status,total_payment,amount_paid,reorder_number,remarks').maybeSingle();
+		const { data: jobs, error } = await db.rpc('edit_manufacturer_job', {
+			p_job_id: jobId,
+			p_manufacturer_id: manufacturer.id,
+			p_quantity_sent: quantitySent,
+			p_quantity_received: quantityReceived,
+			p_status: body.status,
+			p_allocation_date: body.allocation_date,
+			p_expected_return_date: body.expected_return_date,
+			p_payment_status: body.payment_status,
+			p_total_payment: totalPayment,
+			p_amount_paid: amountPaid,
+			p_reorder_number: reorderNumber,
+			p_remarks: remarks,
+		});
+		if (error?.code === 'PGRST202') return NextResponse.json({ error: 'The manufacturing edit function is not installed or its schema cache is stale. Run supabase/migrations/20261012173500_edit_manufacturer_job_quantities.sql in the Supabase SQL Editor, then retry.' }, { status: 503 });
+		if (error?.code === 'P0002') return NextResponse.json({ error: error.message }, { status: 404 });
 		if (error) return NextResponse.json({ error: error.message }, { status: error.code === '23505' ? 409 : 400 });
+		const data = jobs?.[0];
 		if (!data) return NextResponse.json({ error: 'Manufacturing record not found.' }, { status: 404 });
 		const daysRemaining = Math.ceil((new Date(`${body.expected_return_date}T00:00:00Z`).getTime() - new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z').getTime()) / 86400000);
-		return NextResponse.json({ ...data, manufacturer: manufacturerName, days_remaining: daysRemaining });
+		return NextResponse.json({ ...data, quantity_outstanding: Math.max(quantitySent - quantityReceived - (data.quantity_rejected ?? 0), 0), manufacturer: manufacturerName, days_remaining: daysRemaining });
 	}
 
 	const received = Number(body.quantity_received);

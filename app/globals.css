@@ -158,6 +158,7 @@ h2 { margin: 0; color: var(--ink); font-size: 17px; letter-spacing: -0.3px; }
 .order-detail-panel .order-line span:last-child { flex: 0 0 auto; text-align: right; }
 .formgrid .button { justify-self: start; margin-top: 8px; }
 .form-error { display: flex; align-items: center; gap: 7px; grid-column: 1 / -1; padding: 10px 12px; border: 1px solid #efc4b9; border-radius: 8px; background: var(--coral-soft); color: #a84937; font-size: 12px; }
+.form-warning { color: #9a6411; font-size: 12px; }
 .login-page { display: grid; min-height: 100vh; place-items: center; padding: 24px; }
 .login-card { width: min(100%, 420px); padding: 34px; }
 .login-mark { display: grid; width: 44px; height: 44px; place-items: center; margin-bottom: 24px; border-radius: 13px; background: var(--teal-soft); color: var(--teal); }
