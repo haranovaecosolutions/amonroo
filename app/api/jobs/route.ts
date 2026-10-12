@@ -6,16 +6,16 @@ type JobRecord = {
 	manufacturer: string; qty: number; quantity_sent: number; quantity_received: number;
 	quantity_outstanding: number; days: number; days_remaining: number; expected_return_date: string;
 	allocation_date: string; status: string; payment_status: string; total_payment: number;
-	amount_paid: number; reorder_number: number; remarks: string; sku_ids: string[]; sku_id?: string;
+	amount_paid: number; reorder_number: number; remarks: string; sku_id?: string;
 };
 
 let demo: JobRecord[] = [
-	{ id: 'demo-job-1001', job: 'JOB-1001', job_number: 'JOB-1001', product: 'AM-001', product_sku: 'AM-001', manufacturer: 'Demo Manufacturer', qty: 100, quantity_sent: 100, quantity_received: 0, quantity_outstanding: 100, days: 8, days_remaining: 8, expected_return_date: '2026-10-09', allocation_date: '2026-09-20', status: 'sent', payment_status: 'pending', total_payment: 0, amount_paid: 0, reorder_number: 50, remarks: 'Initial batch', sku_ids: [] },
-	{ id: 'demo-job-1002', job: 'JOB-1002', job_number: 'JOB-1002', product: 'AM-002', product_sku: 'AM-002', manufacturer: 'Demo Manufacturer', qty: 60, quantity_sent: 60, quantity_received: 0, quantity_outstanding: 60, days: 2, days_remaining: 2, expected_return_date: '2026-10-03', allocation_date: '2026-09-22', status: 'in_production', payment_status: 'partial', total_payment: 1200, amount_paid: 400, reorder_number: 25, remarks: 'Awaiting final stitching', sku_ids: [] },
-	{ id: 'demo-job-1003', job: 'JOB-1003', job_number: 'JOB-1003', product: 'AM-003', product_sku: 'AM-003', manufacturer: 'Demo Manufacturer', qty: 40, quantity_sent: 40, quantity_received: 0, quantity_outstanding: 40, days: -1, days_remaining: -1, expected_return_date: '2026-09-30', allocation_date: '2026-09-18', status: 'overdue', payment_status: 'pending', total_payment: 800, amount_paid: 0, reorder_number: 10, remarks: 'Delivery is overdue', sku_ids: [] },
-	{ id: 'demo-job-1004', job: 'JOB-1004', job_number: 'JOB-1004', product: 'AM-004', product_sku: 'AM-004', manufacturer: 'Thread & Needle Works', qty: 75, quantity_sent: 75, quantity_received: 1, quantity_outstanding: 74, days: 12, days_remaining: 12, expected_return_date: '2026-10-13', allocation_date: '2026-09-26', status: 'partially_received', payment_status: 'partial', total_payment: 1350, amount_paid: 450, reorder_number: 10, remarks: 'Velvet sample, awaiting final trim', sku_ids: ['SKU-AM004-0001'] },
-	{ id: 'demo-job-1005', job: 'JOB-1005', job_number: 'JOB-1005', product: 'AM-005', product_sku: 'AM-005', manufacturer: 'Northstar Apparel', qty: 40, quantity_sent: 40, quantity_received: 2, quantity_outstanding: 38, days: 0, days_remaining: 0, expected_return_date: '2026-10-01', allocation_date: '2026-09-17', status: 'partially_received', payment_status: 'paid', total_payment: 2800, amount_paid: 2800, reorder_number: 12, remarks: 'First two units delivered', sku_ids: ['SKU-AM005-0001', 'SKU-AM005-0002'] },
-	{ id: 'demo-job-1006', job: 'JOB-1006', job_number: 'JOB-1006', product: 'AM-006', product_sku: 'AM-006', manufacturer: 'Stitchcraft Studio', qty: 25, quantity_sent: 25, quantity_received: 0, quantity_outstanding: 25, days: -4, days_remaining: -4, expected_return_date: '2026-09-27', allocation_date: '2026-09-30', status: 'overdue', payment_status: 'pending', total_payment: 900, amount_paid: 0, reorder_number: 8, remarks: 'Awaiting production slot', sku_ids: [] },
+	{ id: 'demo-job-1001', job: 'JOB-1001', job_number: 'JOB-1001', product: 'AM-001', product_sku: 'AM-001', manufacturer: 'Demo Manufacturer', qty: 100, quantity_sent: 100, quantity_received: 0, quantity_outstanding: 100, days: 8, days_remaining: 8, expected_return_date: '2026-10-09', allocation_date: '2026-09-20', status: 'sent', payment_status: 'pending', total_payment: 0, amount_paid: 0, reorder_number: 50, remarks: 'Initial batch' },
+	{ id: 'demo-job-1002', job: 'JOB-1002', job_number: 'JOB-1002', product: 'AM-002', product_sku: 'AM-002', manufacturer: 'Demo Manufacturer', qty: 60, quantity_sent: 60, quantity_received: 0, quantity_outstanding: 60, days: 2, days_remaining: 2, expected_return_date: '2026-10-03', allocation_date: '2026-09-22', status: 'in_production', payment_status: 'partial', total_payment: 1200, amount_paid: 400, reorder_number: 25, remarks: 'Awaiting final stitching' },
+	{ id: 'demo-job-1003', job: 'JOB-1003', job_number: 'JOB-1003', product: 'AM-003', product_sku: 'AM-003', manufacturer: 'Demo Manufacturer', qty: 40, quantity_sent: 40, quantity_received: 0, quantity_outstanding: 40, days: -1, days_remaining: -1, expected_return_date: '2026-09-30', allocation_date: '2026-09-18', status: 'overdue', payment_status: 'pending', total_payment: 800, amount_paid: 0, reorder_number: 10, remarks: 'Delivery is overdue' },
+	{ id: 'demo-job-1004', job: 'JOB-1004', job_number: 'JOB-1004', product: 'AM-004', product_sku: 'AM-004', manufacturer: 'Thread & Needle Works', qty: 75, quantity_sent: 75, quantity_received: 1, quantity_outstanding: 74, days: 12, days_remaining: 12, expected_return_date: '2026-10-13', allocation_date: '2026-09-26', status: 'partially_received', payment_status: 'partial', total_payment: 1350, amount_paid: 450, reorder_number: 10, remarks: 'Velvet sample, awaiting final trim' },
+	{ id: 'demo-job-1005', job: 'JOB-1005', job_number: 'JOB-1005', product: 'AM-005', product_sku: 'AM-005', manufacturer: 'Northstar Apparel', qty: 40, quantity_sent: 40, quantity_received: 2, quantity_outstanding: 38, days: 0, days_remaining: 0, expected_return_date: '2026-10-01', allocation_date: '2026-09-17', status: 'partially_received', payment_status: 'paid', total_payment: 2800, amount_paid: 2800, reorder_number: 12, remarks: 'First two units delivered' },
+	{ id: 'demo-job-1006', job: 'JOB-1006', job_number: 'JOB-1006', product: 'AM-006', product_sku: 'AM-006', manufacturer: 'Stitchcraft Studio', qty: 25, quantity_sent: 25, quantity_received: 0, quantity_outstanding: 25, days: -4, days_remaining: -4, expected_return_date: '2026-09-27', allocation_date: '2026-09-30', status: 'overdue', payment_status: 'pending', total_payment: 900, amount_paid: 0, reorder_number: 8, remarks: 'Awaiting production slot' },
 ];
 
 function validDate(value: unknown): value is string {
@@ -36,15 +36,9 @@ export async function GET() {
 		? await db.from('inventory_products').select('id,sku_id').in('id', productIds)
 		: { data: [], error: null };
 	if (productError) return NextResponse.json({ error: productError.message }, { status: 500 });
-	const jobIds = data.map((job) => job.id);
-	const { data: unitSkus, error: unitSkuError } = jobIds.length
-		? await db.from('manufacturer_unit_skus').select('job_id,sku_id').in('job_id', jobIds).order('received_at')
-		: { data: [], error: null };
-	if (unitSkuError) return NextResponse.json({ error: unitSkuError.message }, { status: 500 });
 	return NextResponse.json(data.map((job) => ({
 		...job,
 		sku_id: products.find((product) => product.id === job.product_id)?.sku_id ?? '',
-		sku_ids: unitSkus.filter((unitSku) => unitSku.job_id === job.id).map((unitSku) => unitSku.sku_id),
 	})), { headers: { 'X-Data-Source': 'supabase' } });
 }
 
@@ -78,8 +72,18 @@ export async function POST(request: Request) {
 		if (Array.isArray(deadDesigns) && deadDesigns.some((design: { design_id: string }) => design.design_id.toLowerCase() === productSku.toLowerCase())) {
 			return NextResponse.json({ code: 'DEAD_DESIGN', error: `Design ID ${productSku} is marked as dead and cannot be used for manufacturing.` }, { status: 409 });
 		}
+		const designJobs = demo.filter((job) => job.product_sku.toLowerCase() === productSku.toLowerCase());
+		const existingSkuId = designJobs.find((job) => job.sku_id)?.sku_id ?? '';
+		if (existingSkuId && designSkuId && existingSkuId.toLowerCase() !== designSkuId.toLowerCase()) {
+			return NextResponse.json({ error: `Design ID ${productSku} is already linked to SKU ID ${existingSkuId}.` }, { status: 409 });
+		}
+		const skuIdForDesign = existingSkuId || designSkuId;
+		if (skuIdForDesign && demo.some((job) => job.product_sku.toLowerCase() !== productSku.toLowerCase() && job.sku_id?.toLowerCase() === skuIdForDesign.toLowerCase())) {
+			return NextResponse.json({ error: `SKU ID "${skuIdForDesign}" is already linked to another design.` }, { status: 409 });
+		}
+		for (const job of designJobs) job.sku_id = skuIdForDesign;
 		const daysRemaining = Math.ceil((new Date(body.expected_return_date).getTime() - Date.now()) / 86400000);
-		const created: JobRecord = { ...fields, id: crypto.randomUUID(), job: jobNumber, product: productSku, product_sku: productSku, qty: quantity, days: daysRemaining, days_remaining: daysRemaining, quantity_received: 0, quantity_outstanding: quantity, status: 'sent', sku_ids: [] };
+		const created: JobRecord = { ...fields, sku_id: skuIdForDesign, id: crypto.randomUUID(), job: jobNumber, product: productSku, product_sku: productSku, qty: quantity, days: daysRemaining, days_remaining: daysRemaining, quantity_received: 0, quantity_outstanding: quantity, status: 'sent' };
 		demo = [...demo, created];
 		return NextResponse.json(created, { status: 201 });
 	}
@@ -131,7 +135,7 @@ export async function POST(request: Request) {
 
 	const { error: transactionError } = await db.from('inventory_transactions').insert({ product_id: product.id, job_id: job.id, transaction_type: 'sent_to_manufacturer', quantity: -quantity, reference: job.job_number, notes: `Sent to ${manufacturerName}` });
 	if (transactionError) return NextResponse.json({ error: transactionError.message }, { status: 400 });
-	return NextResponse.json({ ...job, product_sku: productSku, manufacturer: manufacturerName, sku_id: product.sku_id ?? '', sku_ids: [] }, { status: 201 });
+	return NextResponse.json({ ...job, product_sku: productSku, manufacturer: manufacturerName, sku_id: product.sku_id ?? '' }, { status: 201 });
 }
 
 export async function PATCH(request: Request) {
@@ -194,13 +198,8 @@ export async function PATCH(request: Request) {
 	if (typeof submittedSkuIds !== 'undefined' && (!Array.isArray(submittedSkuIds) || !submittedSkuIds.every((skuId: unknown) => typeof skuId === 'string'))) {
 		return NextResponse.json({ error: 'SKU IDs must be supplied as a list of text values.' }, { status: 400 });
 	}
-	const skuIds = Array.isArray(submittedSkuIds) ? submittedSkuIds.map((skuId: string) => skuId.trim()) : [];
-	if (skuIds.length > 0 && (
-		skuIds.length !== received ||
-		skuIds.some((skuId) => !skuId || skuId.length > 100) ||
-		new Set(skuIds.map((skuId) => skuId.toLowerCase())).size !== skuIds.length
-	)) {
-		return NextResponse.json({ error: 'Enter one distinct SKU ID of 1–100 characters for each received unit, or leave the list empty.' }, { status: 400 });
+	if (Array.isArray(submittedSkuIds) && submittedSkuIds.length > 0) {
+		return NextResponse.json({ error: 'SKU ID is shared by all units of a design and cannot be set per received unit.' }, { status: 400 });
 	}
 
 	const db = serverDb();
@@ -208,22 +207,17 @@ export async function PATCH(request: Request) {
 		const job = demo.find((item) => item.id === body.id);
 		if (!job) return NextResponse.json({ error: 'Manufacturing record not found.' }, { status: 404 });
 		if (received > job.quantity_outstanding) return NextResponse.json({ error: `Only ${job.quantity_outstanding} units are outstanding for this record.` }, { status: 400 });
-		if (skuIds.length > 0) job.sku_ids = [...job.sku_ids, ...skuIds];
 		job.quantity_received += received;
 		job.quantity_outstanding -= received;
 		job.status = job.quantity_outstanding === 0 ? 'received' : 'partially_received';
 		return NextResponse.json(job);
 	}
 
-	const { data, error } = await db.rpc('receive_manufacturer_delivery', { p_job_id: body.id, p_quantity: received, p_sku_ids: skuIds, p_received_at: body.received_at });
+	const { data, error } = await db.rpc('receive_manufacturer_delivery', { p_job_id: body.id, p_quantity: received, p_received_at: body.received_at });
 	if (error?.code === 'P0002') return NextResponse.json({ error: error.message }, { status: 404 });
+	if (error?.code === 'PGRST202') return NextResponse.json({ error: 'The shared-design-SKU receipt function is not installed or its schema cache is stale. Run supabase/migrations/20261012170800_shared_design_sku_manufacturing.sql in the Supabase SQL Editor, then retry.' }, { status: 503 });
 	if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-	const { data: savedUnitSkus, error: savedUnitSkuError } = await db.from('manufacturer_unit_skus')
-		.select('sku_id')
-		.eq('job_id', body.id)
-		.order('received_at');
-	if (savedUnitSkuError) return NextResponse.json({ error: savedUnitSkuError.message }, { status: 500 });
-	return NextResponse.json({ ...data[0], sku_ids: savedUnitSkus.map((unitSku) => unitSku.sku_id) });
+	return NextResponse.json(data[0]);
 }
 
 export async function DELETE(request: Request) {
@@ -233,8 +227,8 @@ export async function DELETE(request: Request) {
 	if (!db) {
 		const index = demo.findIndex((job) => job.id === id);
 		if (index < 0) return NextResponse.json({ error: 'Manufacturing record was not found.' }, { status: 404 });
-		if ((demo[index].quantity_received ?? 0) > 0 || (demo[index].sku_ids?.length ?? 0) > 0) {
-			return NextResponse.json({ error: 'Manufacturing records with received units or unit SKU history cannot be deleted.' }, { status: 409 });
+		if ((demo[index].quantity_received ?? 0) > 0) {
+			return NextResponse.json({ error: 'Manufacturing records with received units cannot be deleted.' }, { status: 409 });
 		}
 		demo = demo.filter((job) => job.id !== id);
 		return NextResponse.json({ id });

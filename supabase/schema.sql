@@ -213,10 +213,11 @@ grant execute on function public.restore_dead_design(text) to service_role;
 create index if not exists jobs_deadline_idx on public.manufacturer_jobs(expected_return_date,status);
 create index if not exists transactions_product_idx on public.inventory_transactions(product_id,occurred_at);
 
+drop function if exists public.receive_manufacturer_delivery(uuid, integer, text[], date);
+
 create or replace function public.receive_manufacturer_delivery(
  p_job_id uuid,
  p_quantity integer,
- p_sku_ids text[],
  p_received_at date
 ) returns setof public.manufacturer_jobs
 language plpgsql
@@ -234,18 +235,6 @@ begin
  if p_quantity < 1 or p_quantity > outstanding then
 	raise exception 'Received quantity must be from 1 to %.', outstanding using errcode = '22023';
  end if;
- if coalesce(cardinality(p_sku_ids), 0) > 0 and (
-	 cardinality(p_sku_ids) <> p_quantity
-	 or exists (select 1 from unnest(p_sku_ids) as sku(value) where nullif(btrim(sku.value), '') is null)
-	 or exists (select 1 from unnest(p_sku_ids) as sku(value) group by lower(btrim(sku.value)) having count(*) > 1)
- ) then
-	raise exception 'Legacy unit SKU IDs, when supplied, must include one distinct ID per received unit.' using errcode = '22023';
- end if;
-
- if coalesce(cardinality(p_sku_ids), 0) > 0 then
-	 insert into public.manufacturer_unit_skus(job_id, product_id, sku_id, received_at)
-	 select p_job_id, job_row.product_id, btrim(sku.value), p_received_at from unnest(p_sku_ids) as sku(value);
- end if;
  insert into public.inventory_transactions(product_id, job_id, transaction_type, quantity, reference, notes, occurred_at)
  values (job_row.product_id, p_job_id, 'received_from_manufacturer', p_quantity, job_row.job_number, 'Received from manufacturer', p_received_at::timestamptz);
 
@@ -260,8 +249,8 @@ begin
  return query select * from public.manufacturer_jobs where id = p_job_id;
 end;
 $$;
-revoke all on function public.receive_manufacturer_delivery(uuid, integer, text[], date) from public, anon, authenticated;
-grant execute on function public.receive_manufacturer_delivery(uuid, integer, text[], date) to service_role;
+revoke all on function public.receive_manufacturer_delivery(uuid, integer, date) from public, anon, authenticated;
+grant execute on function public.receive_manufacturer_delivery(uuid, integer, date) to service_role;
 
 create or replace view public.inventory_stock_summary with (security_invoker = true) as
 select p.id,p.sku,p.name,p.reorder_level,p.target_stock,

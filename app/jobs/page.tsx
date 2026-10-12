@@ -4,10 +4,10 @@ import { FormEvent, useEffect, useState } from 'react';
 import { BriefcaseBusiness, Check, CircleAlert, PackageCheck, Pencil, Plus, Save, Search, Trash2, X } from 'lucide-react';
 import TableScroll from '../components/table-scroll';
 
-type Job = { id?: string; job?: string; job_number?: string; product?: string; product_sku?: string; sku_id?: string; manufacturer: string; qty?: number; quantity_sent?: number; quantity_received?: number; quantity_outstanding?: number; days?: number; days_remaining?: number; expected_return_date?: string; allocation_date?: string; payment_status?: string; total_payment?: number; amount_paid?: number; reorder_number?: number; remarks?: string; sku_ids?: string[]; status?: string };
+type Job = { id?: string; job?: string; job_number?: string; product?: string; product_sku?: string; sku_id?: string; manufacturer: string; qty?: number; quantity_sent?: number; quantity_received?: number; quantity_outstanding?: number; days?: number; days_remaining?: number; expected_return_date?: string; allocation_date?: string; payment_status?: string; total_payment?: number; amount_paid?: number; reorder_number?: number; remarks?: string; status?: string };
 type Design = { sku: string; sku_id?: string | null; name?: string };
 type JobForm = { job_number: string; product_sku: string; sku_id: string; manufacturer: string; quantity_sent: string; allocation_date: string; expected_return_date: string; payment_status: string; total_payment: string; amount_paid: string; reorder_number: string; remarks: string };
-type ReceiptForm = { quantity_received: string; received_at: string; sku_ids: string };
+type ReceiptForm = { quantity_received: string; received_at: string };
 type EditForm = { id: string; manufacturer: string; allocation_date: string; expected_return_date: string; payment_status: string; total_payment: string; amount_paid: string; reorder_number: string; remarks: string };
 
 function localDate() {
@@ -33,7 +33,7 @@ export default function Jobs() {
   const [editForm, setEditForm] = useState<EditForm | null>(null);
   const [editError, setEditError] = useState('');
   const [receivingJob, setReceivingJob] = useState<Job | null>(null);
-  const [receiptForm, setReceiptForm] = useState<ReceiptForm>({ quantity_received: '', received_at: localDate(), sku_ids: '' });
+  const [receiptForm, setReceiptForm] = useState<ReceiptForm>({ quantity_received: '', received_at: localDate() });
   const [receiptError, setReceiptError] = useState('');
 
   useEffect(() => {
@@ -74,7 +74,7 @@ export default function Jobs() {
 
   function openReceipt(job: Job) {
     setReceivingJob(job);
-    setReceiptForm({ quantity_received: '', received_at: localDate(), sku_ids: '' });
+    setReceiptForm({ quantity_received: '', received_at: localDate() });
     setReceiptError('');
   }
 
@@ -83,13 +83,8 @@ export default function Jobs() {
     if (!receivingJob?.id) return;
     setReceiptError('');
     const quantity = Number(receiptForm.quantity_received);
-    const skuIds = receiptForm.sku_ids.split(/[,\n;]/).map((skuId) => skuId.trim()).filter(Boolean);
-    if (skuIds.length > 0 && skuIds.length !== quantity) {
-      setReceiptError(`Enter one SKU ID for each of the ${quantity} received units, or leave SKU IDs empty.`);
-      return;
-    }
 
-    const response = await fetch('/api/jobs', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: receivingJob.id, quantity_received: quantity, received_at: receiptForm.received_at, sku_ids: skuIds }) });
+    const response = await fetch('/api/jobs', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: receivingJob.id, quantity_received: quantity, received_at: receiptForm.received_at }) });
     const result = await response.json();
     if (!response.ok) { setReceiptError(result.error || 'Could not record delivery.'); return; }
     setData(data.map((job) => job.id === receivingJob.id ? { ...job, ...result } : job));
@@ -151,14 +146,10 @@ export default function Jobs() {
   }
 
   const searchTerm = search.trim().toLowerCase();
-  function displaySkuIds(job: Job) {
-    const skuIds = [job.sku_id, ...(job.sku_ids ?? [])].filter((skuId): skuId is string => Boolean(skuId));
-    return [...new Map(skuIds.map((skuId) => [skuId.toLowerCase(), skuId])).values()].join(', ') || '—';
-  }
   const filteredJobs = data.filter((job) => {
     const days = job.days_remaining ?? job.days ?? 0;
     const urgency = days < 0 ? 'overdue' : days <= 3 ? 'due soon' : 'on track';
-    return [job.job_number, job.job, job.product_sku, job.product, job.sku_id, job.sku_ids, job.manufacturer,
+    return [job.job_number, job.job, job.product_sku, job.product, job.sku_id, job.manufacturer,
       job.quantity_sent ?? job.qty, job.quantity_received, job.quantity_outstanding ?? job.qty,
       job.allocation_date, job.payment_status, job.total_payment, job.amount_paid, job.reorder_number,
       job.remarks, job.expected_return_date, job.days_remaining ?? job.days, job.status, urgency,
@@ -167,7 +158,7 @@ export default function Jobs() {
 
   return <>
     {saveNotice && <div className="success-toast" role="status" aria-live="polite"><Check size={16} /> Data saved</div>}
-    <header className="top"><div><div className="eyebrow">Production pipeline</div><h1>Manufacturing</h1><div className="muted">Track production allotments, payments, and unit deliveries.</div></div><div className="top-actions"><span className="badge blue"><BriefcaseBusiness size={13} /> {data.length} records</span></div></header>
+    <header className="top"><div><div className="eyebrow">Production pipeline</div><h1>Manufacturing</h1><div className="muted">Track production allotments, payments, and deliveries. Every unit of a design shares its SKU ID.</div></div><div className="top-actions"><span className="badge blue"><BriefcaseBusiness size={13} /> {data.length} records</span></div></header>
     <section className="card"><div className="section-heading"><div><div className="eyebrow">New production allotment</div><h2>Add manufacturing record</h2></div></div><form className="formgrid required-form" onSubmit={save}>
       <div className="field"><label htmlFor="job-number">Job number</label><input id="job-number" required value={form.job_number} onChange={(event) => setForm({ ...form, job_number: event.target.value })} /></div>
       <div className="field"><label htmlFor="job-design">Design ID</label><select id="job-design" required value={form.product_sku} onChange={(event) => { const designId = event.target.value; if (deadDesignIds.some((deadId) => deadId.toLowerCase() === designId.toLowerCase())) { window.alert(`Design ID ${designId} is marked as dead and cannot be used for manufacturing.`); setForm({ ...form, product_sku: '', sku_id: '' }); return; } const design = designs.find((item) => item.sku === designId); setForm({ ...form, product_sku: designId, sku_id: design?.sku_id ?? '' }); }}><option value="" disabled>Select a design ID</option>{designs.map((design) => <option key={design.sku} value={design.sku}>{design.sku}{design.name && design.name !== design.sku ? ` - ${design.name}` : ''}{deadDesignIds.some((deadId) => deadId.toLowerCase() === design.sku.toLowerCase()) ? ' (Dead design)' : ''}</option>)}</select></div>
@@ -186,11 +177,11 @@ export default function Jobs() {
     </form></section>
     <section className="section">
       <div className="table-tools"><label className="search-field"><Search size={16} /><input type="search" aria-label="Search manufacturing jobs" placeholder="Search manufacturing data..." value={search} onChange={(event) => setSearch(event.target.value)} /></label><span className="muted search-count">{filteredJobs.length} of {data.length} jobs</span></div>
-      <TableScroll><table className="table"><thead><tr><th>Job</th><th>Design ID</th><th>SKU ID</th><th>Manufacturer</th><th>Qty sent</th><th>Qty received</th><th>Date of allotment</th><th>Payment status</th><th>Total payment</th><th>Amount paid</th><th>Reorder number</th><th>Remarks</th><th>Expected delivery</th><th>Status</th><th>Action</th></tr></thead>
-        <tbody>{filteredJobs.map((job) => { const days = job.days_remaining ?? job.days ?? 0; const outstanding = job.quantity_outstanding ?? 0; const received = job.quantity_received ?? 0; const receivedStatus = job.status === 'received'; return <tr key={job.id ?? job.job}><td>{job.job_number ?? job.job}</td><td>{job.product_sku ?? job.product}</td><td>{displaySkuIds(job)}</td><td>{job.manufacturer}</td><td>{job.quantity_sent ?? job.qty}</td><td>{received}</td><td>{job.allocation_date || '—'}</td><td>{job.payment_status || '—'}</td><td>{job.total_payment ?? 0}</td><td>{job.amount_paid ?? 0}</td><td>{job.reorder_number ?? 0}</td><td className="design-remarks" title={job.remarks}>{job.remarks || '—'}</td><td>{job.expected_return_date ?? `${days} days`}</td><td><span className={`badge ${receivedStatus ? 'green' : days < 0 ? 'red' : days <= 3 ? 'amber' : 'blue'}`}>{receivedStatus ? 'Received' : days < 0 ? 'Overdue' : days <= 3 ? 'Due soon' : 'On track'}</span></td><td className="job-actions">{job.id && <><button className="button secondary compact" onClick={() => openEdit(job)}><Pencil size={13} /> Edit</button>{outstanding > 0 && <button className="button secondary compact" onClick={() => openReceipt(job)}><PackageCheck size={13} /> Record delivery</button>}<button className="button secondary compact danger-action" disabled={(job.quantity_received ?? 0) > 0 || deletingJobId === job.id} title={(job.quantity_received ?? 0) > 0 ? 'Cannot delete a job with received units.' : 'Delete manufacturing record'} onClick={() => deleteJob(job)}><Trash2 size={13} /> {deletingJobId === job.id ? 'Deleting...' : 'Delete'}</button></>}</td></tr>; })}</tbody>
+      <TableScroll><table className="table"><thead><tr><th>Job</th><th>Design ID</th><th>SKU ID (per design)</th><th>Manufacturer</th><th>Qty sent</th><th>Qty received</th><th>Date of allotment</th><th>Payment status</th><th>Total payment</th><th>Amount paid</th><th>Reorder number</th><th>Remarks</th><th>Expected delivery</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>{filteredJobs.map((job) => { const days = job.days_remaining ?? job.days ?? 0; const outstanding = job.quantity_outstanding ?? 0; const received = job.quantity_received ?? 0; const receivedStatus = job.status === 'received'; return <tr key={job.id ?? job.job}><td>{job.job_number ?? job.job}</td><td>{job.product_sku ?? job.product}</td><td>{job.sku_id || '—'}</td><td>{job.manufacturer}</td><td>{job.quantity_sent ?? job.qty}</td><td>{received}</td><td>{job.allocation_date || '—'}</td><td>{job.payment_status || '—'}</td><td>{job.total_payment ?? 0}</td><td>{job.amount_paid ?? 0}</td><td>{job.reorder_number ?? 0}</td><td className="design-remarks" title={job.remarks}>{job.remarks || '—'}</td><td>{job.expected_return_date ?? `${days} days`}</td><td><span className={`badge ${receivedStatus ? 'green' : days < 0 ? 'red' : days <= 3 ? 'amber' : 'blue'}`}>{receivedStatus ? 'Received' : days < 0 ? 'Overdue' : days <= 3 ? 'Due soon' : 'On track'}</span></td><td className="job-actions">{job.id && <><button className="button secondary compact" onClick={() => openEdit(job)}><Pencil size={13} /> Edit</button>{outstanding > 0 && <button className="button secondary compact" onClick={() => openReceipt(job)}><PackageCheck size={13} /> Record delivery</button>}<button className="button secondary compact danger-action" disabled={(job.quantity_received ?? 0) > 0 || deletingJobId === job.id} title={(job.quantity_received ?? 0) > 0 ? 'Cannot delete a job with received units.' : 'Delete manufacturing record'} onClick={() => deleteJob(job)}><Trash2 size={13} /> {deletingJobId === job.id ? 'Deleting...' : 'Delete'}</button></>}</td></tr>; })}</tbody>
       </table>{filteredJobs.length === 0 && <div className="empty-state">{searchTerm ? 'No manufacturing jobs match your search.' : 'No manufacturing jobs found.'}</div>}</TableScroll>
     </section>
-    {editingJob && editForm && <div className="dialog-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) { setEditingJob(null); setEditForm(null); } }}><section className="card receive-dialog" role="dialog" aria-modal="true" aria-labelledby="edit-job-title"><div className="section-heading"><div><div className="eyebrow">Manufacturing record</div><h2 id="edit-job-title">Edit {editingJob.job_number ?? editingJob.job}</h2></div><button type="button" className="button secondary compact" aria-label="Close edit form" onClick={() => { setEditingJob(null); setEditForm(null); }}><X size={15} /></button></div><p className="muted receive-summary">Design ID, quantities, and received SKU history are kept unchanged to protect stock and delivery records.</p><form className="formgrid required-form" onSubmit={saveEdit}>
+    {editingJob && editForm && <div className="dialog-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) { setEditingJob(null); setEditForm(null); } }}><section className="card receive-dialog" role="dialog" aria-modal="true" aria-labelledby="edit-job-title"><div className="section-heading"><div><div className="eyebrow">Manufacturing record</div><h2 id="edit-job-title">Edit {editingJob.job_number ?? editingJob.job}</h2></div><button type="button" className="button secondary compact" aria-label="Close edit form" onClick={() => { setEditingJob(null); setEditForm(null); }}><X size={15} /></button></div>    <p className="muted receive-summary">Design ID and quantities are kept unchanged to protect stock and delivery records.</p><form className="formgrid required-form" onSubmit={saveEdit}>
       <div className="field"><label htmlFor="edit-manufacturer">Manufacturer</label><input id="edit-manufacturer" required value={editForm.manufacturer} onChange={(event) => setEditForm({ ...editForm, manufacturer: event.target.value })} /></div>
       <div className="field"><label htmlFor="edit-allocation-date">Date of allotment</label><input id="edit-allocation-date" required type="date" value={editForm.allocation_date} onChange={(event) => setEditForm({ ...editForm, allocation_date: event.target.value })} /></div>
       <div className="field"><label htmlFor="edit-expected-return">Expected delivery date</label><input id="edit-expected-return" required type="date" value={editForm.expected_return_date} onChange={(event) => setEditForm({ ...editForm, expected_return_date: event.target.value })} /></div>
@@ -205,7 +196,6 @@ export default function Jobs() {
     {receivingJob && <div className="dialog-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setReceivingJob(null); }}><section className="card receive-dialog" role="dialog" aria-modal="true" aria-labelledby="receive-title"><div className="section-heading"><div><div className="eyebrow">Manufacturer delivery</div><h2 id="receive-title">Record units for {receivingJob.job_number ?? receivingJob.job}</h2></div><button type="button" className="button secondary compact" aria-label="Close delivery form" onClick={() => setReceivingJob(null)}><X size={15} /></button></div><div className="muted receive-summary">{receivingJob.product_sku ?? receivingJob.product} · {receivingJob.quantity_outstanding} units outstanding</div><form className="formgrid required-form" onSubmit={receive}>
       <div className="field"><label htmlFor="received-quantity">Quantity received</label><input id="received-quantity" required min="1" max={receivingJob.quantity_outstanding} step="1" type="number" value={receiptForm.quantity_received} onChange={(event) => setReceiptForm({ ...receiptForm, quantity_received: event.target.value })} /></div>
       <div className="field"><label htmlFor="received-date">Date received</label><input id="received-date" required type="date" value={receiptForm.received_at} onChange={(event) => setReceiptForm({ ...receiptForm, received_at: event.target.value })} /></div>
-      <div className="field wide-field"><label htmlFor="received-sku-ids">Unit SKU IDs (optional)</label><textarea id="received-sku-ids" value={receiptForm.sku_ids} onChange={(event) => setReceiptForm({ ...receiptForm, sku_ids: event.target.value })} placeholder="Enter one SKU ID per received unit, separated by commas or new lines" /><small className="muted">If supplied, enter exactly one unique SKU ID for each unit in this delivery.</small></div>
       {receiptError && <div className="form-error"><CircleAlert size={15} /> {receiptError}</div>}
       <div className="receive-actions"><button type="button" className="button secondary" onClick={() => setReceivingJob(null)}>Cancel</button><button className="button"><PackageCheck size={15} /> Save delivery</button></div>
     </form></section></div>}
