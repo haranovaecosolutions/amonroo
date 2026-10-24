@@ -3,7 +3,7 @@
 import './globals.css';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Ban, BarChart3, Boxes, ClipboardList, FileSpreadsheet, LayoutDashboard, PackageSearch, ChevronRight } from 'lucide-react';
+import { Ban, BarChart3, Boxes, ClipboardList, FileSpreadsheet, LayoutDashboard, PackageSearch, Settings, ChevronRight } from 'lucide-react';
 
 const navigation = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -13,6 +13,7 @@ const navigation = [
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/reports', label: 'Export reports', icon: FileSpreadsheet },
   { href: '/dead-designs', label: 'Dead designs', icon: Ban },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

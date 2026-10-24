@@ -69,6 +69,8 @@ Important: `amonroo.update.ai@gmail.com` cannot normally be used as a Resend sen
 6. The configured Vercel cron calls `/api/alerts` daily at 07:00 UTC. Vercel sends `Authorization: Bearer <CRON_SECRET>` when `CRON_SECRET` is configured. Configure and verify a Resend sender before relying on alerts; if alerts are not being used, remove or disable the cron entry in [`vercel.json`](vercel.json).
 7. Configure the production domain in Vercel. Anyone with the public URL will be able to use the app.
 
+Open **Settings → Connection status** after deployment to check that Supabase can be queried and BaseLinker accepts the API token. The alert and cron checks confirm that their variables are present, without displaying secrets. Dashboard, designs, manufacturing, orders, analytics, and Settings refresh live data while open; use the page's refresh control for an immediate check where available. Browser refresh does not run while the app is closed.
+
 Because there is no sign-in, anyone with the site URL can view and modify inventory data and access the app's data/export APIs. Do not deploy sensitive business or customer data publicly; add authentication and authorization controls if access needs to be restricted.
 
 Vercel Preview deployments should not share production secrets by default. Keep `.env.local` and all environment files out of Git; `.gitignore` already excludes them.

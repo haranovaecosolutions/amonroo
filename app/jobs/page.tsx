@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from 'react';
-import { BriefcaseBusiness, Check, CircleAlert, PackageCheck, Pencil, Plus, Save, Search, Trash2, X } from 'lucide-react';
+import { BriefcaseBusiness, Check, CircleAlert, PackageCheck, Pencil, Plus, RefreshCw, Save, Search, Trash2, X } from 'lucide-react';
 import TableScroll from '../components/table-scroll';
 
 type Job = { id?: string; job?: string; job_number?: string; product?: string; product_sku?: string; sku_id?: string; manufacturer: string; qty?: number; quantity_sent?: number; quantity_received?: number; quantity_rejected?: number; quantity_outstanding?: number; days?: number; days_remaining?: number; expected_return_date?: string; allocation_date?: string; payment_status?: string; total_payment?: number; amount_paid?: number; reorder_number?: number; remarks?: string; status?: string };
@@ -27,6 +27,9 @@ export default function Jobs() {
   const [form, setForm] = useState<JobForm>(emptyJob);
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [saveNotice, setSaveNotice] = useState(false);
   const [deletingJobId, setDeletingJobId] = useState('');
   const [editingJob, setEditingJob] = useState<Job | null>(null);
@@ -42,7 +45,31 @@ export default function Jobs() {
     return () => window.clearTimeout(timeout);
   }, [saveNotice]);
 
-  useEffect(() => { fetch('/api/jobs').then((response) => response.json()).then(setData); }, []);
+  useEffect(() => {
+    let active = true;
+    async function load(showLoading: boolean) {
+      if (showLoading && active) setRefreshing(true);
+      try {
+        const response = await fetch('/api/jobs', { cache: 'no-store' });
+        const result: unknown = await response.json();
+        if (!response.ok) {
+          const message = typeof result === 'object' && result !== null && 'error' in result && typeof result.error === 'string'
+            ? result.error
+            : 'Could not load manufacturing records.';
+          throw new Error(message);
+        }
+        if (!Array.isArray(result)) throw new Error('The database returned an invalid manufacturing list.');
+        if (active) { setData(result as Job[]); setLastUpdated(new Date()); setError(''); }
+      } catch (loadError) {
+        if (active) setError(loadError instanceof Error ? loadError.message : 'Could not load manufacturing records.');
+      } finally {
+        if (showLoading && active) setRefreshing(false);
+      }
+    }
+    void load(true);
+    const interval = window.setInterval(() => void load(false), 60_000);
+    return () => { active = false; window.clearInterval(interval); };
+  }, [refreshKey]);
   useEffect(() => { fetch('/api/products').then((response) => response.json()).then(setDesigns); }, []);
   useEffect(() => { fetch('/api/dead-designs').then((response) => response.json()).then((items) => setDeadDesignIds(Array.isArray(items) ? items.map((item: { design_id: string }) => item.design_id) : [])); }, []);
 
@@ -167,7 +194,7 @@ export default function Jobs() {
 
   return <>
     {saveNotice && <div className="success-toast" role="status" aria-live="polite"><Check size={16} /> Data saved</div>}
-    <header className="top"><div><div className="eyebrow">Production pipeline</div><h1>Manufacturing</h1><div className="muted">Track production allotments, payments, and deliveries. Every unit of a design shares its SKU ID.</div></div><div className="top-actions"><span className="badge blue"><BriefcaseBusiness size={13} /> {data.length} records</span></div></header>
+    <header className="top"><div><div className="eyebrow">Production pipeline</div><h1>Manufacturing</h1><div className="muted">Track production allotments, payments, and deliveries. Every unit of a design shares its SKU ID.</div></div><div className="top-actions"><span className="muted update-note">{lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · every minute` : 'Loading records'}</span><button className="button secondary" onClick={() => setRefreshKey((key) => key + 1)} disabled={refreshing}><RefreshCw size={15} className={refreshing ? 'spin' : ''} /> Refresh</button><span className="badge blue"><BriefcaseBusiness size={13} /> {data.length} records</span></div></header>
     <section className="card"><div className="section-heading"><div><div className="eyebrow">New production allotment</div><h2>Add manufacturing record</h2></div></div><form className="formgrid required-form" onSubmit={save}>
       <div className="field"><label htmlFor="job-number">Job number</label><input id="job-number" required value={form.job_number} onChange={(event) => setForm({ ...form, job_number: event.target.value })} /></div>
       <div className="field"><label htmlFor="job-design">Design ID</label><select id="job-design" required value={form.product_sku} onChange={(event) => { const designId = event.target.value; if (deadDesignIds.some((deadId) => deadId.toLowerCase() === designId.toLowerCase())) { window.alert(`Design ID ${designId} is marked as dead and cannot be used for manufacturing.`); setForm({ ...form, product_sku: '', sku_id: '' }); return; } const design = designs.find((item) => item.sku === designId); setForm({ ...form, product_sku: designId, sku_id: design?.sku_id ?? '' }); }}><option value="" disabled>Select a design ID</option>{designs.map((design) => <option key={design.sku} value={design.sku}>{design.sku}{design.name && design.name !== design.sku ? ` - ${design.name}` : ''}{deadDesignIds.some((deadId) => deadId.toLowerCase() === design.sku.toLowerCase()) ? ' (Dead design)' : ''}</option>)}</select></div>

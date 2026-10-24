@@ -48,6 +48,10 @@ async function callBaseLinker(method: string, parameters: ApiObject = {}) {
   return result;
 }
 
+export async function checkBaseLinkerConnection() {
+  await callBaseLinker('getOrderStatusList');
+}
+
 function unixDate(value: unknown) {
   const timestamp = numericValue(value);
   return timestamp > 0 ? new Date(timestamp * 1000).toISOString() : '';

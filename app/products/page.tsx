@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from 'react';
-import { Check, CircleAlert, PackageOpen, Plus, Save, Search, Trash2 } from 'lucide-react';
+import { Check, CircleAlert, PackageOpen, Plus, RefreshCw, Save, Search, Trash2 } from 'lucide-react';
 import TableScroll from '../components/table-scroll';
 
 type Design = { id?: string; sku: string; name: string; allocation_date?: string; delivery_date?: string | null; payment_date?: string | null; payment_status?: string; total_payment?: number; payment_amount?: number; remarks?: string; current_stock?: number; stock?: number; reorder_level?: number; reorder?: number; shortage?: number; warehouse_id?: string; source?: string };
@@ -24,6 +24,9 @@ export default function Products() {
   const [loadError, setLoadError] = useState('');
   const [saveNotice, setSaveNotice] = useState('');
   const [search, setSearch] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
   const remarksRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -34,20 +37,24 @@ export default function Products() {
 
   useEffect(() => {
     let active = true;
-    async function load() {
+    async function load(showLoading: boolean) {
+      if (showLoading && active) setRefreshing(true);
       try {
         const response = await fetch('/api/products', { cache: 'no-store' });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Could not load designs.');
-        if (active) { setData(result); setLoadError(''); }
+        if (!Array.isArray(result)) throw new Error('The database returned an invalid design list.');
+        if (active) { setData(result); setLoadError(''); setLastUpdated(new Date()); }
       } catch (loadError) {
         if (active) setLoadError(loadError instanceof Error ? loadError.message : 'Could not load designs.');
+      } finally {
+        if (showLoading && active) setRefreshing(false);
       }
     }
-    void load();
-    const interval = window.setInterval(() => void load(), 60_000);
+    void load(true);
+    const interval = window.setInterval(() => void load(false), 60_000);
     return () => { active = false; window.clearInterval(interval); };
-  }, []);
+  }, [refreshKey]);
   useEffect(() => {
     const remarks = remarksRef.current;
     if (!remarks) return;
@@ -107,7 +114,7 @@ export default function Products() {
 
   return <>
     {saveNotice && <div className="success-toast" role="status" aria-live="polite"><Check size={16} /> {saveNotice}</div>}
-    <header className="top"><div><div className="eyebrow">Design catalogue</div><h1>Designs</h1><div className="muted">Add designs to Supabase and track allocation, delivery, payment, and available stock by Design ID.</div></div><div className="top-actions"><span className="badge green"><PackageOpen size={13} /> {data.length} designs</span></div></header>
+    <header className="top"><div><div className="eyebrow">Design catalogue</div><h1>Designs</h1><div className="muted">Add designs to Supabase and track allocation, delivery, payment, and available stock by Design ID.</div></div><div className="top-actions"><span className="muted update-note">{lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · every minute` : 'Loading designs'}</span><button className="button secondary" onClick={() => setRefreshKey((key) => key + 1)} disabled={refreshing}><RefreshCw size={15} className={refreshing ? 'spin' : ''} /> Refresh</button><span className="badge green"><PackageOpen size={13} /> {data.length} designs</span></div></header>
     {loadError && <div className="form-error dashboard-error"><CircleAlert size={15} /> {loadError}</div>}
     <section className="card"><div className="section-heading"><div><div className="eyebrow">New design</div><h2>Add design</h2></div></div><form className="formgrid required-form" onSubmit={save}>
       <div className="field"><label htmlFor="design-id">Design ID</label><input id="design-id" required value={form.design_number} onChange={(event) => setForm({ ...form, design_number: event.target.value })} /></div>
