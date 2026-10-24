@@ -32,13 +32,24 @@ export async function GET() {
 	const { data, error } = await db.from('manufacturer_job_summary').select('*').order('expected_return_date');
 	if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 	const productIds = [...new Set(data.map((job) => job.product_id))];
-	const { data: products, error: productError } = productIds.length
-		? await db.from('inventory_products').select('id,sku_id').in('id', productIds)
-		: { data: [], error: null };
+	const manufacturerIds = [...new Set(data.map((job) => job.manufacturer_id))];
+	const [
+		{ data: products, error: productError },
+		{ data: manufacturers, error: manufacturerError },
+	] = await Promise.all([
+		productIds.length
+			? db.from('inventory_products').select('id,sku_id').in('id', productIds)
+			: Promise.resolve({ data: [], error: null }),
+		manufacturerIds.length
+			? db.from('manufacturers').select('id,name').in('id', manufacturerIds)
+			: Promise.resolve({ data: [], error: null }),
+	]);
 	if (productError) return NextResponse.json({ error: productError.message }, { status: 500 });
+	if (manufacturerError) return NextResponse.json({ error: manufacturerError.message }, { status: 500 });
 	return NextResponse.json(data.map((job) => ({
 		...job,
 		sku_id: products.find((product) => product.id === job.product_id)?.sku_id ?? '',
+		manufacturer: manufacturers.find((manufacturer) => manufacturer.id === job.manufacturer_id)?.name ?? '',
 	})), { headers: { 'X-Data-Source': 'supabase' } });
 }
 
