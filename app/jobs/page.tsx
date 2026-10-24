@@ -4,7 +4,46 @@ import { FormEvent, useEffect, useState } from 'react';
 import { BriefcaseBusiness, Check, CircleAlert, PackageCheck, Pencil, Plus, RefreshCw, Save, Search, Trash2, X } from 'lucide-react';
 import TableScroll from '../components/table-scroll';
 
-type Job = { id?: string; job?: string; job_number?: string; product?: string; product_sku?: string; sku_id?: string; manufacturer: string; qty?: number; quantity_sent?: number; quantity_received?: number; quantity_rejected?: number; quantity_outstanding?: number; days?: number; days_remaining?: number; expected_return_date?: string; allocation_date?: string; payment_status?: string; total_payment?: number; amount_paid?: number; reorder_number?: number; remarks?: string; status?: string };
+type Job = {
+  id?: string;
+  job?: string;
+  job_number?: string;
+  order_id?: string | null;
+  order_number?: string;
+  customer_name?: string;
+  product_id?: string;
+  product?: string;
+  product_sku?: string;
+  product_name?: string;
+  sku_id?: string;
+  manufacturer_id?: string;
+  manufacturer: string;
+  manufacturer_contact_name?: string;
+  manufacturer_email?: string;
+  manufacturer_phone?: string;
+  manufacturer_notes?: string;
+  qty?: number;
+  quantity_sent?: number;
+  quantity_received?: number;
+  quantity_rejected?: number;
+  quantity_outstanding?: number;
+  days?: number;
+  days_remaining?: number;
+  urgency?: string;
+  sent_at?: string;
+  received_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  notes?: string | null;
+  expected_return_date?: string;
+  allocation_date?: string;
+  payment_status?: string;
+  total_payment?: number;
+  amount_paid?: number;
+  reorder_number?: number;
+  remarks?: string;
+  status?: string;
+};
 type Design = { sku: string; sku_id?: string | null; name?: string };
 type JobForm = { job_number: string; product_sku: string; sku_id: string; manufacturer: string; quantity_sent: string; allocation_date: string; expected_return_date: string; payment_status: string; total_payment: string; amount_paid: string; reorder_number: string; remarks: string };
 type ReceiptForm = { quantity_received: string; received_at: string };
@@ -18,6 +57,18 @@ function localDate() {
 
 function emptyJob(): JobForm {
   return { job_number: '', product_sku: '', sku_id: '', manufacturer: '', quantity_sent: '', allocation_date: localDate(), expected_return_date: '', payment_status: 'pending', total_payment: '', amount_paid: '', reorder_number: '', remarks: '' };
+}
+
+function displayDate(value?: string | null) {
+  if (!value) return '—';
+  const [datePart] = value.split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+  if (!year || !month || !day) return value;
+  const date = new Date(year, month - 1, day);
+  if (Number.isNaN(date.getTime())) return value;
+  return value.includes('T')
+    ? `${date.toLocaleDateString()} ${new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+    : date.toLocaleDateString();
 }
 
 export default function Jobs() {
@@ -185,10 +236,14 @@ export default function Jobs() {
   const filteredJobs = data.filter((job) => {
     const days = job.days_remaining ?? job.days ?? 0;
     const urgency = days < 0 ? 'overdue' : days <= 3 ? 'due soon' : 'on track';
-    return [job.job_number, job.job, job.product_sku, job.product, job.sku_id, job.manufacturer,
-      job.quantity_sent ?? job.qty, job.quantity_received, job.quantity_outstanding ?? job.qty,
-      job.allocation_date, job.payment_status, job.total_payment, job.amount_paid, job.reorder_number,
-      job.remarks, job.expected_return_date, job.days_remaining ?? job.days, job.status, urgency,
+    return [job.id, job.job_number, job.job, job.order_id, job.order_number, job.customer_name,
+      job.product_id, job.product_sku, job.product, job.product_name, job.sku_id, job.manufacturer_id,
+      job.manufacturer, job.manufacturer_contact_name, job.manufacturer_email, job.manufacturer_phone,
+      job.manufacturer_notes, job.quantity_sent ?? job.qty, job.quantity_received, job.quantity_rejected,
+      job.quantity_outstanding, job.sent_at, job.allocation_date, job.received_at, job.payment_status,
+      job.total_payment, job.amount_paid, job.reorder_number, job.remarks, job.notes,
+      job.expected_return_date, job.days_remaining ?? job.days, job.status, job.urgency, urgency,
+      job.created_at, job.updated_at,
     ].some((value) => String(value ?? '').toLowerCase().includes(searchTerm));
   });
 
@@ -213,8 +268,60 @@ export default function Jobs() {
     </form></section>
     <section className="section">
       <div className="table-tools"><label className="search-field"><Search size={16} /><input type="search" aria-label="Search manufacturing jobs" placeholder="Search manufacturing data..." value={search} onChange={(event) => setSearch(event.target.value)} /></label><span className="muted search-count">{filteredJobs.length} of {data.length} jobs</span></div>
-      <TableScroll><table className="table"><thead><tr><th>Job</th><th>Design ID</th><th>SKU ID (per design)</th><th>Manufacturer</th><th>Qty sent</th><th>Qty received</th><th>Date of allotment</th><th>Payment status</th><th>Total payment</th><th>Amount paid</th><th>Reorder number</th><th>Remarks</th><th>Expected delivery</th><th>Status</th><th>Action</th></tr></thead>
-        <tbody>{filteredJobs.map((job) => { const days = job.days_remaining ?? job.days ?? 0; const outstanding = job.quantity_outstanding ?? 0; const received = job.quantity_received ?? 0; const quantitySent = job.quantity_sent ?? job.qty ?? 0; const receivedStatus = job.status === 'received'; const partialStatus = job.status === 'partially_received'; const cancelledStatus = job.status === 'cancelled'; const draftStatus = job.status === 'draft'; const productionStatus = job.status === 'in_production'; const statusLabel = receivedStatus ? 'Received' : partialStatus ? 'Partially received' : cancelledStatus ? 'Cancelled' : draftStatus ? 'Draft' : productionStatus ? 'In production' : job.status === 'overdue' || days < 0 ? 'Overdue' : days <= 3 ? 'Due soon' : 'On track'; const statusClass = receivedStatus ? 'green' : partialStatus || productionStatus ? 'amber' : cancelledStatus || draftStatus ? 'blue' : days < 0 || job.status === 'overdue' ? 'red' : days <= 3 ? 'amber' : 'blue'; return <tr key={job.id ?? job.job}><td>{job.job_number ?? job.job}</td><td>{job.product_sku ?? job.product}</td><td>{job.sku_id || '—'}</td><td>{job.manufacturer || '—'}</td><td>{job.quantity_sent ?? job.qty}</td><td>{received}</td><td>{job.allocation_date || '—'}</td><td>{job.payment_status || '—'}</td><td>{job.total_payment ?? 0}</td><td>{job.amount_paid ?? 0}</td><td>{job.reorder_number ?? 0}</td><td className="design-remarks" title={job.remarks}>{job.remarks || '—'}</td><td>{job.expected_return_date ?? `${days} days`}</td><td><span className={`badge ${statusClass}`}>{statusLabel}</span></td><td className="job-actions">{job.id && <><button className="button secondary compact" onClick={() => openEdit(job)}><Pencil size={13} /> Edit</button>{(outstanding > 0 || received + (job.quantity_rejected ?? 0) >= quantitySent) && !cancelledStatus && <button className="button secondary compact" onClick={() => openReceipt(job)}><PackageCheck size={13} /> Record delivery</button>}<button className="button secondary compact danger-action" disabled={(job.quantity_received ?? 0) > 0 || deletingJobId === job.id} title={(job.quantity_received ?? 0) > 0 ? 'Cannot delete a job with received units.' : 'Delete manufacturing record'} onClick={() => deleteJob(job)}><Trash2 size={13} /> {deletingJobId === job.id ? 'Deleting...' : 'Delete'}</button></>}</td></tr>; })}</tbody>
+      <p className="muted table-help">Every saved job, linked order, design, manufacturer, payment, delivery date, and record timestamp is included. Scroll horizontally to view all columns.</p>
+      <TableScroll className="manufacturing-table-scroll">
+        <table className="table manufacturing-table" aria-label="Complete manufacturing records">
+          <thead><tr>
+            <th>Record ID</th><th>Job number</th><th>Order ID</th><th>Order number</th><th>Customer</th>
+            <th>Product ID</th><th>Design ID</th><th>Design name</th><th>SKU ID</th>
+            <th>Manufacturer ID</th><th>Manufacturer</th><th>Manufacturer contact</th><th>Manufacturer email</th><th>Manufacturer phone</th><th>Manufacturer notes</th>
+            <th>Quantity sent</th><th>Quantity received</th><th>Quantity rejected</th><th>Quantity outstanding</th>
+            <th>Sent at</th><th>Date of allotment</th><th>Expected delivery</th><th>Received at</th>
+            <th>Payment status</th><th>Total payment</th><th>Amount paid</th><th>Reorder number</th>
+            <th>Status</th><th>Urgency</th><th>Days remaining</th><th>Remarks</th><th>Job notes</th>
+            <th>Created at</th><th>Updated at</th><th>Actions</th>
+          </tr></thead>
+          <tbody>{filteredJobs.map((job) => {
+            const days = job.days_remaining ?? job.days ?? 0;
+            const quantitySent = job.quantity_sent ?? job.qty ?? 0;
+            const outstanding = job.quantity_outstanding ?? Math.max(quantitySent - (job.quantity_received ?? 0) - (job.quantity_rejected ?? 0), 0);
+            const received = job.quantity_received ?? 0;
+            const rejected = job.quantity_rejected ?? 0;
+            const cancelledStatus = job.status === 'cancelled';
+            const receivedStatus = job.status === 'received';
+            const partialStatus = job.status === 'partially_received';
+            const draftStatus = job.status === 'draft';
+            const productionStatus = job.status === 'in_production';
+            const statusLabel = receivedStatus ? 'Received' : partialStatus ? 'Partially received' : cancelledStatus ? 'Cancelled' : draftStatus ? 'Draft' : productionStatus ? 'In production' : job.status === 'overdue' || days < 0 ? 'Overdue' : days <= 3 ? 'Due soon' : job.status || 'On track';
+            const statusClass = receivedStatus ? 'green' : partialStatus || productionStatus ? 'amber' : cancelledStatus || draftStatus ? 'blue' : days < 0 || job.status === 'overdue' ? 'red' : days <= 3 ? 'amber' : 'blue';
+            const urgencyLabel = job.urgency === 'red' ? 'Overdue' : job.urgency === 'amber' ? 'Due soon' : job.urgency === 'blue' ? 'On track' : days < 0 ? 'Overdue' : days <= 3 ? 'Due soon' : 'On track';
+            return <tr key={job.id ?? job.job}>
+              <td><code title={job.id}>{job.id || '—'}</code></td>
+              <td><strong>{job.job_number ?? job.job ?? '—'}</strong></td>
+              <td><code title={job.order_id ?? ''}>{job.order_id || '—'}</code></td>
+              <td>{job.order_number || '—'}</td><td>{job.customer_name || '—'}</td>
+              <td><code title={job.product_id}>{job.product_id || '—'}</code></td>
+              <td>{job.product_sku ?? job.product ?? '—'}</td><td>{job.product_name || '—'}</td><td>{job.sku_id || '—'}</td>
+              <td><code title={job.manufacturer_id}>{job.manufacturer_id || '—'}</code></td>
+              <td>{job.manufacturer || '—'}</td><td>{job.manufacturer_contact_name || '—'}</td>
+              <td>{job.manufacturer_email || '—'}</td><td>{job.manufacturer_phone || '—'}</td>
+              <td className="design-remarks" title={job.manufacturer_notes}>{job.manufacturer_notes || '—'}</td>
+              <td>{quantitySent}</td><td>{received}</td><td>{rejected}</td><td>{outstanding}</td>
+              <td>{displayDate(job.sent_at)}</td><td>{displayDate(job.allocation_date)}</td>
+              <td>{displayDate(job.expected_return_date)}</td><td>{displayDate(job.received_at)}</td>
+              <td>{job.payment_status || '—'}</td><td>{job.total_payment ?? 0}</td><td>{job.amount_paid ?? 0}</td>
+              <td>{job.reorder_number ?? 0}</td><td><span className={`badge ${statusClass}`}>{statusLabel}</span></td>
+              <td>{urgencyLabel}</td><td>{job.days_remaining ?? job.days ?? '—'}</td>
+              <td className="design-remarks" title={job.remarks}>{job.remarks || '—'}</td>
+              <td className="design-remarks" title={job.notes ?? ''}>{job.notes || '—'}</td>
+              <td>{displayDate(job.created_at)}</td><td>{displayDate(job.updated_at)}</td>
+              <td className="job-actions">{job.id && <>
+                <button className="button secondary compact" onClick={() => openEdit(job)}><Pencil size={13} /> Edit</button>
+                {(outstanding > 0 || received + rejected >= quantitySent) && !cancelledStatus && <button className="button secondary compact" onClick={() => openReceipt(job)}><PackageCheck size={13} /> Record delivery</button>}
+                <button className="button secondary compact danger-action" disabled={received > 0 || deletingJobId === job.id} title={received > 0 ? 'Cannot delete a job with received units.' : 'Delete manufacturing record'} onClick={() => deleteJob(job)}><Trash2 size={13} /> {deletingJobId === job.id ? 'Deleting...' : 'Delete'}</button>
+              </>}</td>
+            </tr>;
+          })}</tbody>
       </table>{filteredJobs.length === 0 && <div className="empty-state">{searchTerm ? 'No manufacturing jobs match your search.' : 'No manufacturing jobs found.'}</div>}</TableScroll>
     </section>
     {editingJob && editForm && <div className="dialog-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) { setEditingJob(null); setEditForm(null); } }}><section className="card receive-dialog" role="dialog" aria-modal="true" aria-labelledby="edit-job-title"><div className="section-heading"><div><div className="eyebrow">Manufacturing record</div><h2 id="edit-job-title">Edit {editingJob.job_number ?? editingJob.job}</h2></div><button type="button" className="button secondary compact" aria-label="Close edit form" onClick={() => { setEditingJob(null); setEditForm(null); }}><X size={15} /></button></div><p className="muted receive-summary">Quantity changes are tracked in stock history.</p><form className="formgrid required-form" onSubmit={saveEdit}>

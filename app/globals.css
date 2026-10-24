@@ -114,6 +114,8 @@ h2 { margin: 0; color: var(--ink); font-size: 17px; letter-spacing: -0.3px; }
 .table-scroll-top::-webkit-scrollbar-thumb { border: 2px solid #eaf0ed; border-radius: 99px; background: #8aa39a; }
 .table-scroll-top::-webkit-scrollbar-thumb:hover { background: var(--teal); }
 .table-scroll-spacer { height: 1px; }
+.table-help { margin: 0 0 8px; font-size: 12px; }
+.manufacturing-table-scroll { margin-bottom: 8px; }
 .tablebox { width: 100%; min-width: 0; max-width: 100%; overflow-x: auto; overflow-y: hidden; padding: 0; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
 .table { width: max-content; min-width: 100%; border-collapse: collapse; }
 .table th, .table td { padding: 15px 18px; border-bottom: 1px solid #edf1ee; text-align: left; white-space: nowrap; }

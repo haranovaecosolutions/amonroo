@@ -33,24 +33,47 @@ export async function GET() {
 	if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 	const productIds = [...new Set(data.map((job) => job.product_id))];
 	const manufacturerIds = [...new Set(data.map((job) => job.manufacturer_id))];
+	const orderIds = [...new Set(data.map((job) => job.order_id).filter((id): id is string => Boolean(id)))];
 	const [
 		{ data: products, error: productError },
 		{ data: manufacturers, error: manufacturerError },
+		{ data: orders, error: orderError },
 	] = await Promise.all([
 		productIds.length
-			? db.from('inventory_products').select('id,sku_id').in('id', productIds)
+			? db.from('inventory_products').select('id,sku,name,sku_id').in('id', productIds)
 			: Promise.resolve({ data: [], error: null }),
 		manufacturerIds.length
-			? db.from('manufacturers').select('id,name').in('id', manufacturerIds)
+			? db.from('manufacturers').select('id,name,contact_name,email,phone,notes').in('id', manufacturerIds)
+			: Promise.resolve({ data: [], error: null }),
+		orderIds.length
+			? db.from('customer_orders').select('id,order_number,customer_name').in('id', orderIds)
 			: Promise.resolve({ data: [], error: null }),
 	]);
 	if (productError) return NextResponse.json({ error: productError.message }, { status: 500 });
 	if (manufacturerError) return NextResponse.json({ error: manufacturerError.message }, { status: 500 });
-	return NextResponse.json(data.map((job) => ({
-		...job,
-		sku_id: products.find((product) => product.id === job.product_id)?.sku_id ?? '',
-		manufacturer: manufacturers.find((manufacturer) => manufacturer.id === job.manufacturer_id)?.name ?? '',
-	})), { headers: { 'X-Data-Source': 'supabase' } });
+	if (orderError) return NextResponse.json({ error: orderError.message }, { status: 500 });
+	const productsById = new Map((products ?? []).map((product) => [product.id, product]));
+	const manufacturersById = new Map((manufacturers ?? []).map((manufacturer) => [manufacturer.id, manufacturer]));
+	const ordersById = new Map((orders ?? []).map((order) => [order.id, order]));
+
+	return NextResponse.json(data.map((job) => {
+		const product = productsById.get(job.product_id);
+		const manufacturer = manufacturersById.get(job.manufacturer_id);
+		const order = job.order_id ? ordersById.get(job.order_id) : undefined;
+		return {
+			...job,
+			product_sku: product?.sku ?? '',
+			product_name: product?.name ?? '',
+			sku_id: product?.sku_id ?? '',
+			manufacturer: manufacturer?.name ?? '',
+			manufacturer_contact_name: manufacturer?.contact_name ?? '',
+			manufacturer_email: manufacturer?.email ?? '',
+			manufacturer_phone: manufacturer?.phone ?? '',
+			manufacturer_notes: manufacturer?.notes ?? '',
+			order_number: order?.order_number ?? '',
+			customer_name: order?.customer_name ?? '',
+		};
+	}), { headers: { 'X-Data-Source': 'supabase' } });
 }
 
 export async function POST(request: Request) {

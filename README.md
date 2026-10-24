@@ -14,6 +14,7 @@ Amonroo is a small inventory command centre for products, customer orders, manuf
 - Dashboard metrics, stock health, manufacturer pipeline, and analytics charts.
 - JSON export at `/api/export` for local archiving.
 - One-time manual SQL script to archive and clear design/manufacturing records and related stock/SKU history when intentionally starting fresh.
+- One-time destructive SQL script to clear every application table, including orders, manufacturers, alerts, and the deleted-data archive.
 - Excel report downloads for designs and manufacturing by day, week, month, or year.
 - Read-only BaseLinker orders and Supabase-backed designs and manufacturing records.
 - Low-stock and deadline email alerts at `/api/alerts`.
@@ -30,6 +31,8 @@ Amonroo is a small inventory command centre for products, customer orders, manuf
 For a project that has already run the original schema, run [`supabase/migrations/20261005061000_archive_website_deleted_data.sql`](supabase/migrations/20261005061000_archive_website_deleted_data.sql) and then [`supabase/migrations/20261012170800_shared_design_sku_manufacturing.sql`](supabase/migrations/20261012170800_shared_design_sku_manufacturing.sql) in the Supabase SQL Editor. The first migration creates the private `deleted_data` archive and installs the website's delete functions. The second changes delivery recording so a design's single SKU ID is shared across its units; existing unit-SKU history is retained, but new unit-level SKU IDs are no longer recorded. Deletions through the website archive the deleted row and remove it from the active table atomically. The archive has no API-role or service-role table access; view its contents manually in Supabase Studio or the SQL Editor.
 
 To intentionally start fresh while keeping an audit archive, run [`supabase/manual/clear_design_manufacturing_data.sql`](supabase/manual/clear_design_manufacturing_data.sql) once in the Supabase SQL Editor. This archives and removes all designs, manufacturing jobs, related order lines, dead-design markers, unit SKUs, and inventory transactions in one transaction. It preserves customer order headers, manufacturers, alerts (with links to cleared records removed), the schema, and all existing rows in `deleted_data`. Review the scope carefully before running.
+
+To permanently clear **all** application records, including orders, manufacturers, alerts, and the deleted-data archive, run [`supabase/manual/clear_all_application_data.sql`](supabase/manual/clear_all_application_data.sql) in the Supabase SQL Editor. This is destructive and cannot be recovered from the application's archive; back up the project and confirm the selected project before running it.
 
 ## Required credentials
 
